@@ -1,0 +1,53 @@
+{
+  "name": "webget",
+  "main": "src/index.ts",
+  "compatibility_date": "2023-10-25",
+  "account_id": "da49ef9554b11b4b0caa12cc2ebba7ac",
+  "node_compat": true,
+  "browser": {
+    "binding": "BROWSER"
+  },
+  "r2_buckets": [
+    {
+      "binding": "SCREENSHOTS",
+      "bucket_name": "screenshots",
+      "preview_bucket_name": "screenshots-test"
+    }
+  ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "webget",
+      "database_id": "844ad1c9-8f17-40cc-9570-5e99ca373a16"
+    }
+  ],
+  "queues": {
+    "producers": [
+      {
+        "queue": "webget-queue",
+        "binding": "QUEUE"
+      }
+    ],
+    "consumers": [
+      {
+        "queue": "webget-queue",
+        "max_batch_size": 1,
+        "max_batch_timeout": 1
+      }
+    ]
+  },
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "AGENTS",
+        "class_name": "Agent"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_classes": ["Agent"]
+    }
+  ]
+}

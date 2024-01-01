@@ -1,0 +1,8 @@
+# Node modules
+node_modules
+# TurboRepo artifacts
+.turbo
+# Wrangler local state
+.wrangler
+# Output files
+out

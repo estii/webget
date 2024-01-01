@@ -1,0 +1,13 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "globalDependencies": [],
+  "pipeline": {
+    "build": {},
+    "dev": {},
+    "test": {},
+    "check": {},
+    "start": {
+      "dependsOn": ["build"]
+    }
+  }
+}

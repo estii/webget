@@ -1,0 +1,15 @@
+{
+  "name": "webget",
+  "type": "module",
+  "workspaces": [
+    "apps/*"
+  ],
+  "dependencies": {
+    "typescript": "^5.0.0",
+    "@webget/cli": "*"
+  },
+  "devDependencies": {
+    "turbo": "latest",
+    "@types/bun": "latest"
+  }
+}
