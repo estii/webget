@@ -6,3 +6,5 @@ node_modules
 .wrangler
 # Output files
 out
+.vercel
+.next

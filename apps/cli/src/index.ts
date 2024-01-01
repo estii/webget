@@ -1,3 +1,3 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 
-console.log("Hello!");
+console.log("Hello!", Bun.version);
