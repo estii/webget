@@ -1,11 +1,11 @@
-import { easeInOutQuad, easeOutSine } from "../../easing";
+import { ActionContext, ActionOptions } from "../../../api/src/lib/action";
 import {
   FRAME_DURATION,
   SCROLL_PADDING,
   getTargetPosition,
   wait,
-} from "../../utils";
-import { ActionContext, ActionOptions } from "../action";
+} from "../../../api/src/utils";
+import { easeInOutQuad, easeOutSine } from "../../easing";
 import {
   getMaxScrollPosition,
   getTargetScroll,

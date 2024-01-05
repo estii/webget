@@ -1,4 +1,4 @@
-import { ActionContext } from "../action";
+import { ActionContext } from "../../../api/src/lib/action";
 import { logComplete, logStart } from "../api";
 import { client } from "../client";
 

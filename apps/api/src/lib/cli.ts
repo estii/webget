@@ -4,7 +4,7 @@ import { spawnSync } from "child_process";
 import { existsSync, writeFileSync } from "fs";
 import { globSync } from "glob";
 import { chromium } from "playwright";
-import { client } from "./client";
+import { client } from "../../../cli/src/client";
 
 function getScript(id: string) {
   return `import * as webget from "webget"

@@ -1,7 +1,7 @@
 import fs from "fs";
 import { LocatorScreenshotOptions } from "playwright";
 // import ssim from "ssim.js";
-import { ActionContext, Rect } from "../action";
+import { ActionContext, Rect } from "../../../api/src/lib/action";
 import { logComplete, logStart } from "../api";
 // import { getImageData } from "../ssim";
 import { getMaxScrollPosition } from "./scroll";

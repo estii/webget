@@ -11,7 +11,12 @@
     "webget": "./bin/index.js"
   },
   "dependencies": {
-    "commander": "^11.1.0"
+    "@trpc/client": "^10.45.0",
+    "@webget/api": "*",
+    "colors": "^1.4.0",
+    "commander": "^11.1.0",
+    "glob": "^10.3.10",
+    "playwright": "^1.40.1"
   },
   "devDependencies": {
     "@commander-js/extra-typings": "^11.1.0"

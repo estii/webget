@@ -1,6 +1,10 @@
 import { Locator } from "playwright-core";
-import { parsePlacement } from "../../utils";
-import { ActionContext, ActionOptions, Rect } from "../action";
+import {
+  ActionContext,
+  ActionOptions,
+  Rect,
+} from "../../../api/src/lib/action";
+import { parsePlacement } from "../../../api/src/utils";
 
 type El = HTMLElement | SVGElement;
 

@@ -4,8 +4,8 @@ import child_process from "child_process";
 import { existsSync, lstatSync, writeFileSync } from "fs";
 import { globSync } from "glob";
 import { chromium } from "playwright";
-import { generateFiles, getAsset } from "./lib/api";
-import { client } from "./lib/client";
+import { generateFiles, getAsset } from "./api";
+import { client } from "./client";
 
 type ScriptProps = { id: string; url: string; width: number; height: number };
 

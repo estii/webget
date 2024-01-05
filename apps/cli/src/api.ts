@@ -4,7 +4,6 @@ import fs from "fs";
 import ora from "ora";
 import path from "path";
 import { chromium } from "playwright";
-import { injectEditor } from "../embed";
 import {
   ActionContext,
   ActionState,
@@ -12,7 +11,7 @@ import {
   Asset,
   Output,
   defaultOutput,
-} from "./action";
+} from "../../api/src/lib/action";
 import { click } from "./actions/click";
 import { fill } from "./actions/fill";
 import { goto } from "./actions/goto";
@@ -24,6 +23,7 @@ import { scroll } from "./actions/scroll";
 import { set } from "./actions/set";
 import { trim } from "./actions/trim";
 import { wait } from "./actions/wait";
+import { injectEditor } from "./embed";
 
 function getType(extension: string) {
   switch (extension) {
