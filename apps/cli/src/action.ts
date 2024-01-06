@@ -1,5 +1,5 @@
 import { Browser, BrowserContext, Page } from "playwright";
-import { Action } from "../../../cli/src/api";
+import { Action } from "./api";
 
 export type Prettify<T> = {
   [K in keyof T]: T[K];

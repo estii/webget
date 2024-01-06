@@ -1,4 +1,4 @@
-import { ActionContext } from "../../../api/src/lib/action";
+import { ActionContext } from "../action";
 import { logComplete, logStart } from "../api";
 
 export async function wait(ctx: ActionContext, ms: number) {

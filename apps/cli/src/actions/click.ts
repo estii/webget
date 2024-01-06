@@ -1,10 +1,6 @@
-import { ActionContext, ActionOptions } from "../../../api/src/lib/action";
-import {
-  CLICK_DURATION,
-  getTargetPosition,
-  wait,
-} from "../../../api/src/utils";
+import { ActionContext, ActionOptions } from "../action";
 import { logComplete, logStart } from "../api";
+import { CLICK_DURATION, getTargetPosition, wait } from "../utils";
 
 export type ClickOptions = Partial<ActionOptions>;
 

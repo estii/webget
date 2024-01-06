@@ -1,5 +1,5 @@
-import { ActionContext } from "../../../api/src/lib/action";
-import { wait } from "../../../api/src/utils";
+import { ActionContext } from "../action";
+import { wait } from "../utils";
 
 export type FillParams = {
   selector: string;

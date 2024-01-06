@@ -11,7 +11,7 @@ import {
   Asset,
   Output,
   defaultOutput,
-} from "../../api/src/lib/action";
+} from "./action";
 import { click } from "./actions/click";
 import { fill } from "./actions/fill";
 import { goto } from "./actions/goto";

@@ -1,5 +1,5 @@
 import { DeepPartial } from "@trpc/server";
-import { ActionContext, Output } from "../../../api/src/lib/action";
+import { ActionContext, Output } from "../action";
 
 export type SetParams = DeepPartial<Output>;
 

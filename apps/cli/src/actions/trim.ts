@@ -1,4 +1,4 @@
-import { ActionContext } from "../../../api/src/lib/action";
+import { ActionContext } from "../action";
 import { set } from "./set";
 
 export type TrimParams = {

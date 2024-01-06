@@ -1,5 +1,5 @@
-import { ActionContext } from "../../../api/src/lib/action";
 import { getCaptionDuration } from "../../../api/src/lib/caption";
+import { ActionContext } from "../action";
 import { set } from "./set";
 import { wait } from "./wait";
 

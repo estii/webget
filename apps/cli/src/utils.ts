@@ -1,11 +1,5 @@
 import { Locator } from "playwright-core";
-import {
-  ActionContext,
-  ActionOptions,
-  Placement,
-  Point,
-  Rect,
-} from "./lib/action";
+import { ActionContext, ActionOptions, Placement, Point, Rect } from "./action";
 
 export const parsePlacement = (placement: Placement) => {
   const [first, second] = placement.split("-");

@@ -2,6 +2,8 @@
   "name": "@webget/api",
   "version": "0.0.0",
   "private": true,
+  "main": "./src/exports.ts",
+  "types": "./src/exports.ts",
   "scripts": {
     "dev": "wrangler dev -j --port 4000 --remote"
   },

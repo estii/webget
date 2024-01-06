@@ -1,9 +1,7 @@
-/// <reference lib="DOM" />
-
 import React, { useCallback, useEffect } from "react";
 import ReactDOM from "react-dom/client";
-import { Output } from "./lib/action";
-import { Action } from "./lib/api";
+import { Output } from "./action";
+import { Action } from "./api";
 
 function App() {
   const [show, setShow] = React.useState(false);
