@@ -1,4 +1,3 @@
-import { stateRouter } from "./states";
 import { procedure, router } from "./trpc";
 
 export const testRouter = router({
@@ -10,7 +9,6 @@ export const testRouter = router({
 });
 
 export const appRouter = router({
-  states: stateRouter,
   test: testRouter,
 });
 

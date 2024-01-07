@@ -1,9 +1,9 @@
 import { Browser, Page, launch } from "@cloudflare/puppeteer";
 import { Env } from ".";
-import * as agents from "./agents";
-import * as jobs from "./jobs";
+import * as agents from "./agent";
+import * as jobs from "./job";
 import { getDb } from "./schema";
-import * as screenshots from "./screenshots";
+import * as screenshots from "./screenshot";
 
 const KEEP_BROWSER_ALIVE_IN_SECONDS = 60;
 
@@ -31,11 +31,11 @@ export class Agent implements DurableObject {
     const url = new URL(req.url);
     const jobId = url.searchParams.get("jobId");
 
-    const job = await jobs.get(db, jobId);
-    await jobs.update(db, { id: job.id, status: "started" });
+    const job = await jobs.getJob(db, jobId);
+    await jobs.updateJob(db, { id: job.id, status: "started" });
     console.log(job.id, "started");
 
-    await agents.upsert(db, this.state.id.toString(), "working");
+    await agents.upsertAgent(db, this.state.id.toString(), "working");
 
     const timestamp = new Date().toISOString().split(".")[0];
 
@@ -71,7 +71,7 @@ export class Agent implements DurableObject {
     const buffer = await page.screenshot({ type: "png" });
     await this.env.SCREENSHOTS.put(key, buffer);
 
-    await screenshots.insert(db, {
+    await screenshots.insertScreenshot(db, {
       width,
       height,
       deviceScaleFactor,
@@ -89,8 +89,8 @@ export class Agent implements DurableObject {
       await this.storage.setAlarm(Date.now() + 10_000);
     }
 
-    await agents.upsert(db, this.state.id.toString(), "ready");
-    await jobs.update(db, { id: job.id, status: "completed" });
+    await agents.upsertAgent(db, this.state.id.toString(), "ready");
+    await jobs.updateJob(db, { id: job.id, status: "completed" });
     console.log(job.id, "completed");
 
     return new Response("Ok");
@@ -114,7 +114,7 @@ export class Agent implements DurableObject {
       if (browser.isConnected()) {
         console.log(`Closing browser.`);
         const db = getDb(this.env);
-        await agents.upsert(db, this.state.id.toString(), "closed");
+        await agents.upsertAgent(db, this.state.id.toString(), "closed");
         await browser.close();
       }
     }

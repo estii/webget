@@ -1,42 +1,39 @@
 import { asc, ne } from "drizzle-orm";
-import * as sqlite from "drizzle-orm/sqlite-core";
+import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { DB } from "./schema";
 import { getId } from "./util";
 
-export const table = sqlite.sqliteTable("agents", {
-  id: sqlite
-    .text("id")
+export const agentTable = sqliteTable("agents", {
+  id: text("id")
     .primaryKey()
     .notNull()
     .$default(() => getId()),
-  state: sqlite
-    .text("state", { enum: ["ready", "working", "closed"] })
+  state: text("state", { enum: ["ready", "working", "closed"] })
     .notNull()
     .$default(() => "ready"),
-  lastActive: sqlite
-    .integer("last_active", { mode: "timestamp_ms" })
+  lastActive: integer("last_active", { mode: "timestamp_ms" })
     .notNull()
     .$default(() => new Date()),
 });
 
-export function upsert(
+export function upsertAgent(
   db: DB,
   id: string,
   state: "ready" | "working" | "closed"
 ) {
   const values = { id, state, lastActive: new Date() };
   return db
-    .insert(table)
+    .insert(agentTable)
     .values(values)
-    .onConflictDoUpdate({ target: table.id, set: values })
+    .onConflictDoUpdate({ target: agentTable.id, set: values })
     .returning()
     .get();
 }
 
 export async function getNextAgent(db: DB) {
   const agents = await db.query.agents.findMany({
-    where: ne(table.state, "working"),
-    orderBy: asc(table.lastActive),
+    where: ne(agentTable.state, "working"),
+    orderBy: asc(agentTable.lastActive),
   });
   const ready = agents.find((a) => a.state === "ready");
   if (ready) return ready;

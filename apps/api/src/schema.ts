@@ -1,19 +1,19 @@
 import { DrizzleD1Database, drizzle } from "drizzle-orm/d1";
 import { Env } from ".";
-import * as agents from "./agents";
-import * as assets from "./assets";
+import * as agents from "./agent";
+import * as assets from "./asset";
 import { clientGroupTable, clientTable } from "./client";
-import * as jobs from "./jobs";
-import * as screenshots from "./screenshots";
+import * as jobs from "./job";
+import { screenshotRelations, screenshotTable } from "./screenshot";
 
 const schema = {
-  assets: assets.table,
-  assetsRelations: assets.relations,
-  jobs: jobs.table,
-  jobsRelations: jobs.relations,
-  agents: agents.table,
-  screenshots: screenshots.table,
-  screenshotsRelations: screenshots.relations,
+  assets: assets.assetTable,
+  assetsRelations: assets.assetRelations,
+  jobs: jobs.jobTable,
+  jobsRelations: jobs.jobRelations,
+  agents: agents.agentTable,
+  screenshots: screenshotTable,
+  screenshotsRelations: screenshotRelations,
   clients: clientTable,
   clientGroups: clientGroupTable,
 };
