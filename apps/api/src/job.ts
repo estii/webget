@@ -1,4 +1,4 @@
-import * as orm from "drizzle-orm";
+import { eq, or, relations } from "drizzle-orm";
 import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { assetTable } from "./asset";
 import { DB } from "./schema";
@@ -22,7 +22,7 @@ export const jobTable = sqliteTable("jobs", {
     .references(() => assetTable.id, { onDelete: "cascade" }),
 });
 
-export const jobRelations = orm.relations(jobTable, ({ one }) => ({
+export const jobRelations = relations(jobTable, ({ one }) => ({
   asset: one(assetTable, {
     fields: [jobTable.assetId],
     references: [assetTable.id],
@@ -33,7 +33,7 @@ type JobUpdate = Pick<typeof jobTable.$inferInsert, "id" | "status">;
 
 export function getJob(db: DB, id: string) {
   return db.query.jobs.findFirst({
-    where: orm.eq(jobTable.id, id),
+    where: eq(jobTable.id, id),
     with: {
       asset: true,
     },
@@ -48,17 +48,17 @@ export function updateJob(db: DB, { id, status }: JobUpdate) {
   return db
     .update(jobTable)
     .set({ status })
-    .where(orm.eq(jobTable.id, id))
+    .where(eq(jobTable.id, id))
     .returning()
     .get();
 }
 
 export function listNextJobs(db: DB, limit: number) {
   return db.query.jobs.findMany({
-    where: orm.or(
-      orm.eq(jobTable.status, "queued"),
-      orm.eq(jobTable.status, "started"),
-      orm.eq(jobTable.status, "waiting")
+    where: or(
+      eq(jobTable.status, "queued"),
+      eq(jobTable.status, "started"),
+      eq(jobTable.status, "waiting")
     ),
     orderBy: jobTable.createdAt,
     limit,

@@ -1,8 +1,8 @@
 import { getNextAgent } from "./agent";
-import * as assets from "./asset";
-import * as jobs from "./job";
+import { assetTable, insertAsset } from "./asset";
+import { insertJob, listNextJobs, updateJob } from "./job";
 import { getDb } from "./schema";
-import * as screenshots from "./screenshot";
+import { screenshotTable } from "./screenshot";
 
 const MAX_AGENTS = 5;
 
@@ -22,11 +22,11 @@ export type Env = {
 // check for jobs that are waiting and start them
 async function sendNextJobs(env: Env) {
   const db = getDb(env);
-  const next = await jobs.listNextJobs(db, MAX_AGENTS);
+  const next = await listNextJobs(db, MAX_AGENTS);
   for (const job of next) {
     if (job.status === "waiting") {
       await env.QUEUE.send({ type: "run", jobId: job.id });
-      await jobs.updateJob(db, { id: job.id, status: "queued" });
+      await updateJob(db, { id: job.id, status: "queued" });
       console.log(job.id, "queued");
     }
   }
@@ -34,8 +34,8 @@ async function sendNextJobs(env: Env) {
 
 async function createJob(env: Env) {
   const db = getDb(env);
-  const asset = await assets.insertAsset(db, "https://estii.com/pricing");
-  const job = await jobs.insertJob(db, asset.id);
+  const asset = await insertAsset(db, "https://estii.com/pricing");
+  const job = await insertJob(db, asset.id);
   console.log(job.id, "waiting");
   await sendNextJobs(env);
 }
@@ -75,9 +75,9 @@ const handler: ExportedHandler<Env, Message> = {
     if (url.pathname === "/nuke") {
       const db = getDb(env);
       // await db.delete(jobs.table).run();
-      await db.delete(assets.assetTable).run();
+      await db.delete(assetTable).run();
       // await db.delete(agents.table).run();
-      await db.delete(screenshots.screenshotTable).run();
+      await db.delete(screenshotTable).run();
       return new Response("Ok");
     }
 

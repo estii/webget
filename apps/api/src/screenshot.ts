@@ -1,6 +1,6 @@
-import * as orm from "drizzle-orm";
+import { relations } from "drizzle-orm";
 import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
-import * as assets from "./asset";
+import { assetTable } from "./asset";
 import { DB } from "./schema";
 import { getId } from "./util";
 
@@ -15,18 +15,15 @@ export const screenshotTable = sqliteTable("screenshots", {
   url: text("url").notNull(),
   assetId: text("asset_id")
     .notNull()
-    .references(() => assets.assetTable.id, { onDelete: "cascade" }),
+    .references(() => assetTable.id, { onDelete: "cascade" }),
 });
 
-export const screenshotRelations = orm.relations(
-  screenshotTable,
-  ({ one }) => ({
-    asset: one(assets.assetTable, {
-      fields: [screenshotTable.assetId],
-      references: [assets.assetTable.id],
-    }),
-  })
-);
+export const screenshotRelations = relations(screenshotTable, ({ one }) => ({
+  asset: one(assetTable, {
+    fields: [screenshotTable.assetId],
+    references: [assetTable.id],
+  }),
+}));
 
 type InsertScreenshot = typeof screenshotTable.$inferInsert;
 
