@@ -4,9 +4,14 @@ import type {
   PullResponseOKV1,
 } from "replicache";
 import { z } from "zod";
-import { getClientGroupForUpdate } from "./client";
-import { ClientViewData } from "./cvr";
+import { searchAgents } from "./agent";
+import { searchAssets } from "./asset";
+import { getClientGroupForUpdate, searchClients } from "./client";
+import { ClientViewData, ClientViewRecord } from "./cvr";
+import { searchJobs } from "./job";
 import { DB } from "./schema";
+import { searchScreenshots } from "./screenshot";
+import { searchUsers } from "./user";
 
 const cookie = z.object({
   order: z.number(),
@@ -20,73 +25,73 @@ const pullRequest = z.object({
   cookie: z.union([cookie, z.null()]),
 });
 
-type ClientViewRecord = {
-  asset: ClientViewData;
-  job: ClientViewData;
-  screenshot: ClientViewData;
-  clientVersion: number;
-};
-
 // cvrKey -> ClientViewRecord
 const cvrCache = new Map<string, ClientViewRecord>();
 
 export async function pull(
-  db:DB,
+  db: DB,
   userID: string,
-  requestBody: Request
+  request: Request
 ): Promise<PullResponse> {
-  console.log(`Processing pull`, JSON.stringify(requestBody, null, ""));
+  console.log(`Processing pull`, JSON.stringify(request, null, ""));
 
-  const pull = pullRequest.parse(requestBody);
+  const body = await request.json();
+  const pull = pullRequest.parse(body);
 
   const { clientGroupID } = pull;
   const prevCVR = pull.cookie
     ? cvrCache.get(makeCVRKey(pull.cookie))
     : undefined;
+
   const baseCVR = prevCVR ?? {
-    list: new ClientViewData(),
-    todo: new ClientViewData(),
-    share: new ClientViewData(),
+    agent: new ClientViewData(),
+    asset: new ClientViewData(),
+    job: new ClientViewData(),
+    screenshot: new ClientViewData(),
+    user: new ClientViewData(),
     clientVersion: 0,
   };
   console.log({ prevCVR, baseCVR });
 
   const { nextCVRVersion, nextCVR, clientChanges, lists, shares, todos } =
-    // await transact(async (executor) => {
+    await (async () => {
       const baseClientGroupRecord = await getClientGroupForUpdate(
         db,
         clientGroupID
       );
 
-      const [clientChanges, listMeta] = await Promise.all([
-        searchClients(executor, {
-          clientGroupID,
-          sinceClientVersion: baseCVR.clientVersion,
-        }),
-        searchLists(executor, { accessibleByUserID: userID }),
+      const clientChanges = await searchClients(
+        db,
+        clientGroupID,
+        baseCVR.clientVersion
+      );
+
+      console.log({ baseClientGroupRecord, clientChanges });
+
+      const [agents, assets, jobs, screenshots, users] = await Promise.all([
+        searchAgents(db),
+        searchAssets(db),
+        searchJobs(db),
+        searchScreenshots(db),
+        searchUsers(db),
       ]);
-
-      console.log({ baseClientGroupRecord, clientChanges, listMeta });
-
-      // TODO: Should be able to do this join in the database and eliminate a round-trip.
-      const listIDs = listMeta.map((l) => l.id);
-      const [todoMeta, shareMeta] = await Promise.all([
-        searchTodos(executor, { listIDs }),
-        searchShares(executor, { listIDs }),
-      ]);
-
-      console.log({ todoMeta, shareMeta });
 
       const nextCVR: ClientViewRecord = {
-        list: ClientViewData.fromSearchResult(listMeta),
-        todo: ClientViewData.fromSearchResult(todoMeta),
-        share: ClientViewData.fromSearchResult(shareMeta),
+        agent: ClientViewData.fromSearchResult(agents),
+        asset: ClientViewData.fromSearchResult(assets),
+        job: ClientViewData.fromSearchResult(jobs),
+        screenshot: ClientViewData.fromSearchResult(screenshots),
+        user: ClientViewData.fromSearchResult(users),
         clientVersion: baseClientGroupRecord.clientVersion,
       };
 
-      const listPuts = nextCVR.list.getPutsSince(baseCVR.list);
-      const sharePuts = nextCVR.share.getPutsSince(baseCVR.share);
-      const todoPuts = nextCVR.todo.getPutsSince(baseCVR.todo);
+      const agentPuts = nextCVR.agent.getPutsSince(baseCVR.agent);
+      const assetPuts = nextCVR.asset.getPutsSince(baseCVR.asset);
+      const jobPuts = nextCVR.job.getPutsSince(baseCVR.job);
+      const screenshotPuts = nextCVR.screenshot.getPutsSince(
+        baseCVR.screenshot
+      );
+      const userPuts = nextCVR.user.getPutsSince(baseCVR.user);
 
       // Replicache ClientGroups can be forked from an existing
       // ClientGroup with existing state and cookie. In this case we
@@ -109,7 +114,14 @@ export async function pull(
         cvrVersion: prevCVRVersion + 1,
       };
 
-      console.log({ listPuts, sharePuts, todoPuts, nextClientGroupRecord });
+      console.log({
+        agentPuts,
+        assetPuts,
+        jobPuts,
+        screenshotPuts,
+        userPuts,
+        nextClientGroupRecord,
+      });
 
       const [lists, shares, todos] = await Promise.all([
         getLists(executor, listPuts),
@@ -126,7 +138,7 @@ export async function pull(
         shares,
         todos,
       };
-    // });
+    })();
 
   console.log({ nextCVRVersion, nextCVR, clientChanges, lists, shares, todos });
 

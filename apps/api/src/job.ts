@@ -20,6 +20,9 @@ export const jobTable = sqliteTable("jobs", {
   assetId: text("asset_id")
     .notNull()
     .references(() => assetTable.id, { onDelete: "cascade" }),
+  version: integer("version")
+    .notNull()
+    .$default(() => 0),
 });
 
 export const jobRelations = relations(jobTable, ({ one }) => ({
@@ -63,4 +66,8 @@ export function listNextJobs(db: DB, limit: number) {
     orderBy: jobTable.createdAt,
     limit,
   });
+}
+
+export function searchJobs(db: DB) {
+  return db.select().from(jobTable).all();
 }

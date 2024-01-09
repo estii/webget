@@ -1,6 +1,6 @@
 import * as orm from "drizzle-orm";
 
-import { sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import * as jobs from "./job";
 import { DB } from "./schema";
 import * as screenshots from "./screenshot";
@@ -12,6 +12,9 @@ export const assetTable = sqliteTable("assets", {
     .notNull()
     .$default(() => getId()),
   url: text("url").notNull(),
+  version: integer("version")
+    .notNull()
+    .$default(() => 0),
 });
 
 export const assetRelations = orm.relations(assetTable, ({ many }) => ({
@@ -23,6 +26,6 @@ export function insertAsset(db: DB, url: string) {
   return db.insert(assetTable).values({ url }).returning().get();
 }
 
-export function listAssets(db: DB) {
-  return db.query.assets.findMany();
+export function searchAssets(db: DB) {
+  return db.select().from(assetTable).all();
 }

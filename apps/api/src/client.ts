@@ -1,6 +1,7 @@
-import { eq } from "drizzle-orm";
+import { and, eq, gt } from "drizzle-orm";
 import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { DB } from "./schema";
+import { userTable } from "./user";
 import { getId } from "./util";
 
 export const clientGroupTable = sqliteTable("client_groups", {
@@ -8,8 +9,11 @@ export const clientGroupTable = sqliteTable("client_groups", {
     .primaryKey()
     .notNull()
     .$default(() => getId()),
-  cvrVersion: integer("cvr_version"),
+  userId: text("user_id")
+    .notNull()
+    .references(() => userTable.id),
   clientVersion: integer("client_version").notNull(),
+  cvrVersion: integer("cvr_version"),
   updatedAt: integer("updated_at", { mode: "timestamp_ms" })
     .notNull()
     .$default(() => new Date()),
@@ -25,7 +29,8 @@ export const clientTable = sqliteTable("clients", {
   clientGroupId: text("client_group_id")
     .notNull()
     .references(() => clientGroupTable.id),
-  lastMutationID: integer("last_mutation_id").notNull(),
+  durableObjectId: text("durable_object_id").notNull(),
+  lastMutationId: integer("last_mutation_id").notNull(),
   clientVersion: integer("client_version").notNull(),
   updatedAt: integer("updated_at", { mode: "timestamp_ms" })
     .notNull()
@@ -35,9 +40,7 @@ export const clientTable = sqliteTable("clients", {
 export type Client = typeof clientTable.$inferSelect;
 
 export async function getClientGroupForUpdate(db: DB, clientGroupID: string) {
-  const prevClientGroup = await getClientGroup(db, clientGroupID, {
-    forUpdate: true,
-  });
+  const prevClientGroup = await getClientGroup(db, clientGroupID);
   return (
     prevClientGroup ?? {
       id: clientGroupID,
@@ -47,12 +50,27 @@ export async function getClientGroupForUpdate(db: DB, clientGroupID: string) {
   );
 }
 
-export async function getClientGroup(
-  db: DB,
-  clientGroupID: string,
-  { forUpdate }: { forUpdate?: boolean } = {}
-) {
+export async function getClientGroup(db: DB, clientGroupID: string) {
   return db.query.clientGroups.findFirst({
     where: eq(clientGroupTable.id, clientGroupID),
+  });
+}
+
+export function searchClients(
+  db: DB,
+  clientGroupId: string,
+  sinceClientVersion: number
+) {
+  return db.query.clients.findMany({
+    where: and(
+      eq(clientTable.clientGroupId, clientGroupId),
+      gt(clientTable.clientVersion, sinceClientVersion)
+    ),
+    columns: {
+      id: true,
+      clientGroupId: true,
+      lastMutationId: true,
+      clientVersion: true,
+    },
   });
 }

@@ -1,6 +1,6 @@
 export type SearchResult = {
   id: string;
-  rowversion: number;
+  version: number;
 };
 
 export class ClientViewData {
@@ -11,7 +11,7 @@ export class ClientViewData {
   static fromSearchResult(result: SearchResult[]) {
     const cvr = new ClientViewData();
     for (const row of result) {
-      cvr._data.set(row.id, row.rowversion);
+      cvr._data.set(row.id, row.version);
     }
     return cvr;
   }
@@ -39,3 +39,12 @@ export class ClientViewData {
     return dels;
   }
 }
+
+export type ClientViewRecord = {
+  asset: ClientViewData;
+  agent: ClientViewData;
+  job: ClientViewData;
+  screenshot: ClientViewData;
+  user: ClientViewData;
+  clientVersion: number;
+};

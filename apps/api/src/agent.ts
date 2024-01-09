@@ -14,6 +14,9 @@ export const agentTable = sqliteTable("agents", {
   lastActive: integer("last_active", { mode: "timestamp_ms" })
     .notNull()
     .$default(() => new Date()),
+  version: integer("version")
+    .notNull()
+    .$default(() => 0),
 });
 
 export function upsertAgent(
@@ -38,4 +41,8 @@ export async function getNextAgent(db: DB) {
   const ready = agents.find((a) => a.state === "ready");
   if (ready) return ready;
   return agents[0] || null;
+}
+
+export function searchAgents(db: DB) {
+  return db.select().from(agentTable).all();
 }

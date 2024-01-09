@@ -16,6 +16,9 @@ export const screenshotTable = sqliteTable("screenshots", {
   assetId: text("asset_id")
     .notNull()
     .references(() => assetTable.id, { onDelete: "cascade" }),
+  version: integer("version")
+    .notNull()
+    .$default(() => 0),
 });
 
 export const screenshotRelations = relations(screenshotTable, ({ one }) => ({
@@ -29,4 +32,8 @@ type InsertScreenshot = typeof screenshotTable.$inferInsert;
 
 export function insertScreenshot(db: DB, insert: InsertScreenshot) {
   return db.insert(screenshotTable).values(insert).returning().get();
+}
+
+export function searchScreenshots(db: DB) {
+  return db.select().from(screenshotTable).all();
 }

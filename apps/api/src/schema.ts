@@ -5,6 +5,7 @@ import { assetRelations, assetTable } from "./asset";
 import { clientGroupTable, clientTable } from "./client";
 import { jobRelations, jobTable } from "./job";
 import { screenshotRelations, screenshotTable } from "./screenshot";
+import { userTable } from "./user";
 
 const schema = {
   assets: assetTable,
@@ -16,6 +17,7 @@ const schema = {
   screenshotsRelations: screenshotRelations,
   clients: clientTable,
   clientGroups: clientGroupTable,
+  users: userTable,
 };
 
 export type Schema = typeof schema;
