@@ -51,7 +51,7 @@ export async function pull(
     user: new ClientViewData(),
     clientVersion: 0,
   };
-  console.log({ prevCVR, baseCVR });
+  // console.log({ prevCVR, baseCVR });
 
   const { nextCVRVersion, nextCVR, clientChanges, lists, shares, todos } =
     await (async () => {
