@@ -17,6 +17,7 @@ export type Env = {
   QUEUE: Queue<Message>;
   BROWSER: any;
   AGENTS: DurableObjectNamespace;
+  ASSETS: DurableObjectNamespace;
 };
 
 // check for jobs that are waiting and start them

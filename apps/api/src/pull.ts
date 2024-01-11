@@ -180,7 +180,7 @@ export async function pull(
   const resp: PullResponseOKV1 = {
     cookie: respCookie,
     lastMutationIDChanges: Object.fromEntries(
-      clientChanges.map((e) => [e.id, e.lastMutationID] as const)
+      clientChanges.map((e) => [e.id, e.lastMutationId] as const)
     ),
     patch,
   };
