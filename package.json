@@ -1,15 +1,20 @@
 {
-  "name": "webget",
+  "name": "webget-cli",
+  "module": "index.ts",
   "type": "module",
-  "workspaces": [
-    "apps/*"
-  ],
-  "dependencies": {
-    "typescript": "^5.0.0",
-    "@webget/cli": "*"
-  },
   "devDependencies": {
-    "turbo": "latest",
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "@types/yargs": "^17.0.32"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "bin": {
+    "wg": "./index.ts"
+  },
+  "dependencies": {
+    "playwright": "^1.42.0",
+    "yargs": "^17.7.2",
+    "zod": "^3.22.4"
   }
 }
