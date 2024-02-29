@@ -76,7 +76,7 @@ yargs(hideBin(process.argv))
         outputs.map((output) => ({
           title: getTaskTitle(output),
           task: async (ctx, task) => {
-            const result = await getScreenshot(output);
+            const result = await getScreenshot(output, headed);
             task.title = getTaskTitle(output, result);
           },
         })),
@@ -95,8 +95,10 @@ const ScreenshotResult = z.object({
 
 type ScreenshotResult = z.infer<typeof ScreenshotResult>;
 
-async function getScreenshot(path: string) {
-  const res = await fetch(`${SERVER_URL}/screenshot?path=${path}`);
+async function getScreenshot(path: string, headed = false) {
+  const res = await fetch(
+    `${SERVER_URL}/screenshot?path=${path}&headed=${headed ? "1" : "0"}`
+  );
   if (res.status !== 200) {
     return { status: "error" as const, error: "Newtwork error" };
   }

@@ -7,9 +7,15 @@ export const ClickAction = z.object({
   frame: z.string().optional(),
 });
 
-export type ClickAction = z.infer<typeof ClickAction>;
+export const CropAction = z.object({
+  type: z.literal("crop"),
+  selector: z.string(),
+});
 
-export const Action = z.discriminatedUnion("type", [ClickAction]);
+export type ClickAction = z.infer<typeof ClickAction>;
+export type CropAction = z.infer<typeof CropAction>;
+
+export const Action = z.discriminatedUnion("type", [ClickAction, CropAction]);
 
 export type Action = z.infer<typeof Action>;
 

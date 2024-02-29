@@ -1,9 +1,9 @@
 import { unlink } from "node:fs/promises";
 import os from "node:os";
 import { dirname, join } from "node:path";
-import { chromium, type Browser, type Page } from "playwright";
+import { chromium, type Frame, type Page } from "playwright";
 import type { SsimResult } from "./browser";
-import { Config, getConfig } from "./config";
+import { ClickAction, Config, getConfig } from "./config";
 import { PORT, SERVER_URL } from "./constants";
 
 function getType(path: string) {
@@ -47,36 +47,27 @@ async function getBaseConfig(path: string) {
   return getBaseConfig(dir);
 }
 
-let browser: Browser | null = null;
+const headedBrowser = chromium.launch({ headless: false });
+const headlessBrowser = chromium.launch({ headless: true });
 
-async function getBrowser() {
-  if (browser) {
-    return browser;
-  }
-
-  browser = await chromium.launch({ headless: true, channel: "chrome" });
-  return browser;
-}
-
-let runtime: Page | null = null;
-
-async function getRuntime() {
-  if (runtime) {
-    return runtime;
-  }
-
-  const browser = await getBrowser();
-  runtime = await browser.newPage();
+const runtime = headlessBrowser.then(async (browser) => {
+  const page = await browser.newPage();
   const script = await getScript();
-  await runtime.addInitScript({ content: script });
-  await runtime.goto(SERVER_URL);
+  await page.addInitScript({ content: script });
+  await page.goto(SERVER_URL);
+  return page;
+});
 
-  return runtime;
+async function getBrowser(headless = true) {
+  if (headless) {
+    return headlessBrowser;
+  }
+  return headedBrowser;
 }
 
-async function getScreenshot(path: string) {
+async function getScreenshot(path: string, headless: boolean) {
   const config = await getConfig(path);
-  const browser = await getBrowser();
+  const browser = await getBrowser(headless);
   const context = await browser.newContext({
     screen: { width: config.width, height: config.height },
     deviceScaleFactor: config.deviceScaleFactor,
@@ -107,52 +98,57 @@ async function getScreenshotResult(page: Page, config: Config) {
   }
 }
 
+async function clickAction(page: Page, action: ClickAction) {
+  let target: Page | Frame = page;
+
+  if (action.frame) {
+    const frame = page.frame(action.frame);
+    if (!frame) {
+      throw new Error(`frame "${action.frame}" not found`);
+    }
+    target = frame;
+  }
+
+  try {
+    await target.locator(action.selector).click();
+  } catch (error) {
+    throw new Error(`selector "${action.selector}" not found`);
+  }
+}
+
 async function updateScreenshot(page: Page, config: Config) {
   const output = config.path;
   const temp = join(os.tmpdir(), output);
 
-  await page.goto(config.url);
+  await page.goto(config.url, { waitUntil: "networkidle" });
 
   for (const action of config.actions) {
     if (action.type === "click") {
-      try {
-        if (action.frame) {
-          const frame = page.frame({ name: action.frame });
-          if (!frame) throw new Error(`Frame ${action.frame} not found`);
-          await frame.locator(action.selector).click();
-        } else {
-          await page.locator(action.selector).click();
-        }
-      } catch (error) {
-        throw new Error(`Selector ${action.selector} not found`);
-      }
+      await clickAction(page, action);
     }
   }
 
   const exists = await Bun.file(output).exists();
   const path = exists ? temp : output;
   const type = getType(output);
+
   await page.screenshot({ path, type });
 
   if (exists) {
-    const runtime = await getRuntime();
-    const result = await runtime.evaluate(
-      ({ path1, path2 }) => {
-        return window.compare(path1, path2);
-      },
-      {
-        path1: output,
-        path2: temp,
-      }
-    );
+    const result = await compareImages(output, temp);
 
-    const matched = result.ssim > 0.95;
+    const matched = result.ssim > 0.99;
     if (!matched) {
       await Bun.write(output, Bun.file(temp));
     }
     await unlink(temp);
 
-    return { status: matched ? "matched" : "updated" };
+    return {
+      status: matched ? "matched" : "updated",
+      error: matched
+        ? undefined
+        : `similarity ${Math.round(result.ssim * 100)}%`,
+    };
   }
 
   return { status: "created" };
@@ -170,11 +166,12 @@ Bun.serve({
 
     if (path === "/screenshot") {
       const path = url.searchParams.get("path");
+      const headless = url.searchParams.get("headed") !== "1";
       if (!path) {
         console.log("No path");
         return new Response(null, { status: 400 });
       }
-      const result = await getScreenshot(path);
+      const result = await getScreenshot(path, headless);
       return result;
     }
 
@@ -194,6 +191,14 @@ Bun.serve({
     return new Response(null, { status: 404 });
   },
 });
+
+async function compareImages(path1: string, path2: string) {
+  const page = await runtime;
+  return page.evaluate(({ path1, path2 }) => window.compare(path1, path2), {
+    path1,
+    path2,
+  });
+}
 
 declare global {
   interface Window {

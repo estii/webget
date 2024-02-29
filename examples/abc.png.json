@@ -1,0 +1,10 @@
+{
+  "$schema": "../schema.json",
+  "url": "https://abc.com.au",
+  "actions": [
+    {
+      "type": "click",
+      "selector": "button[data-component=CookieBanner_AcceptABCRequired]"
+    }
+  ]
+}
