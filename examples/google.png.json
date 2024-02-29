@@ -1,3 +1,11 @@
 {
-  "url": "https://google.com"
+  "$schema": "../schema.json",
+  "url": "https://google.com",
+  "actions": [
+    {
+      "type": "click",
+      "selector": "button[data-dismiss=n]",
+      "frame": "callout"
+    }
+  ]
 }
