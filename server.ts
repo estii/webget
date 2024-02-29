@@ -1,20 +1,10 @@
 import { unlink } from "node:fs/promises";
+import os from "node:os";
+import { dirname, join } from "node:path";
 import { chromium, type Browser, type Page } from "playwright";
 import type { SsimResult } from "./browser";
 import { Config } from "./config";
-
-export const PORT = 3637;
-
-function getOutput(path: string) {
-  return path.replace(".json", "");
-}
-
-function getTemp(path: string) {
-  return path
-    .replace(".json", "")
-    .replace(".jpg", ".update.jpg")
-    .replace(".png", ".update.png");
-}
+import { PORT, SERVER_URL } from "./constants";
 
 function getType(path: string) {
   if (path.endsWith(".png")) {
@@ -32,8 +22,8 @@ function getMime(path: string) {
 }
 
 async function getConfig(path: string) {
-  const json = await Bun.file(path).json();
-  return Config.parse(json);
+  const json = await Bun.file(path + ".json").json();
+  return { path, ...Config.parse(json) };
 }
 
 async function getScript() {
@@ -46,6 +36,20 @@ async function getScript() {
   if (script) return script.text();
 
   throw new Error("No script found");
+}
+
+async function findConfig(path: string) {
+  const dir = dirname(path);
+  if (dir === "/") {
+    return null;
+  }
+
+  const file = Bun.file(join(dir, "webget.json"));
+  if (await file.exists()) {
+    return Config.parse(file.json());
+  }
+
+  return findConfig(dir);
 }
 
 let browser: Browser | null = null;
@@ -70,53 +74,68 @@ async function getRuntime() {
   runtime = await browser.newPage();
   const script = await getScript();
   await runtime.addInitScript({ content: script });
-  await runtime.goto(`http://localhost:${PORT}`);
+  await runtime.goto(SERVER_URL);
 
   return runtime;
 }
 
-async function getScreenshot(input: string) {
+async function getScreenshot(path: string) {
+  const config = await getConfig(path);
   const browser = await getBrowser();
-  const config = await getConfig(input);
-  const output = getOutput(input);
-  const type = getType(output);
-  const temp = getTemp(input);
-
   const context = await browser.newContext({
     screen: { width: config.width, height: config.height },
     deviceScaleFactor: config.deviceScaleFactor,
   });
+
   const page = await context.newPage();
-
-  page.setDefaultTimeout(5000);
-  page.setDefaultNavigationTimeout(5000);
-
+  page.setDefaultTimeout(1000);
+  page.setDefaultNavigationTimeout(10000);
   // page.on("console", (msg) => console.log("log", msg.text()));
   // page.on("pageerror", (msg) => console.log("error", msg));
 
-  await page.goto(config.url, { waitUntil: "networkidle" });
+  const result = await getScreenshotResult(page, config);
+
+  await page.close();
+  await context.close();
+  return Response.json(result);
+}
+
+async function getScreenshotResult(page: Page, config: Config) {
+  try {
+    return await updateScreenshot(page, config);
+  } catch (error) {
+    if (error instanceof Error) {
+      return { status: "error", error: error.message };
+    }
+    return { status: "error", error: "Unknown error" };
+  }
+}
+
+async function updateScreenshot(page: Page, config: Config) {
+  const output = config.path;
+  const temp = join(os.tmpdir(), output);
+
+  await page.goto(config.url);
 
   for (const action of config.actions) {
     if (action.type === "click") {
       try {
         if (action.frame) {
           const frame = page.frame({ name: action.frame });
-          if (!frame) {
-            throw new Error(`Frame ${action.frame} not found`);
-          }
+          if (!frame) throw new Error(`Frame ${action.frame} not found`);
           await frame.locator(action.selector).click();
         } else {
           await page.locator(action.selector).click();
         }
       } catch (error) {
-        console.error(`Failed to click ${action.selector}`);
-        process.exit(1);
+        throw new Error(`Selector ${action.selector} not found`);
       }
     }
   }
 
   const exists = await Bun.file(output).exists();
   const path = exists ? temp : output;
+  const type = getType(output);
   await page.screenshot({ path, type });
 
   if (exists) {
@@ -136,23 +155,11 @@ async function getScreenshot(input: string) {
       await Bun.write(output, Bun.file(temp));
     }
     await unlink(temp);
-    await page.close();
-    await context.close();
 
-    return Response.json({
-      action: matched ? "matched" : "updated",
-      input,
-      output,
-    });
+    return { status: matched ? "matched" : "updated" };
   }
 
-  await page.close();
-  await context.close();
-  return Response.json({
-    action: "created",
-    input,
-    output,
-  });
+  return { status: "created" };
 }
 
 Bun.serve({
@@ -171,7 +178,8 @@ Bun.serve({
         console.log("No path");
         return new Response(null, { status: 400 });
       }
-      return getScreenshot(path);
+      const result = await getScreenshot(path);
+      return result;
     }
 
     if (path === "/image") {

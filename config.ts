@@ -17,6 +17,7 @@ export const Config = z
     $schema: z.string().default("https://webget.com/schema.json"),
     url: z.string().url().default("https://estii.com"),
     deviceScaleFactor: z.number().min(1).default(2),
+    baseUrl: z.string().optional(),
     width: z.number().min(1).default(1280),
     height: z.number().min(1).default(720),
     actions: z.array(Action).default([]),
@@ -24,4 +25,4 @@ export const Config = z
   .describe("Screenshot configuration")
   .strict();
 
-export type Config = z.infer<typeof Config>;
+export type Config = z.infer<typeof Config> & { path: string };

@@ -3,6 +3,8 @@
  * All rights reserved. (MIT Licensed)
  */
 
+import { SERVER_URL } from "./constants";
+
 type SsimInput = {
   data: Uint8ClampedArray;
   width: number;
@@ -211,7 +213,7 @@ function getSsimResult(
 
 function loadImage(path: string) {
   return new Promise<SsimInput>((resolve, reject) => {
-    const url = `http://localhost:3637/image?path=${path}`;
+    const url = `${SERVER_URL}/image?path=${path}`;
     const image = new Image();
     image.onload = () => {
       const { width, height } = image;

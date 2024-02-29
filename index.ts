@@ -2,17 +2,13 @@
 
 import { Glob } from "bun";
 import Listr from "listr";
-import readline from "readline";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
-function getOutput(path: string) {
-  return path.replace(".json", "");
-}
+import { z } from "zod";
+import { SERVER_URL } from "./constants";
 
-function updateStatus(lineNumber: number, output: string, status: string) {
-  readline.cursorTo(process.stdout, 0, lineNumber);
-  readline.clearLine(process.stdout, 1);
-  console.log(`${output} ${status}`);
+function getOutput(input: string) {
+  return input.replace(".json", "");
 }
 
 type TaskStatus =
@@ -40,9 +36,9 @@ function getStatusEmoji(status: TaskStatus) {
   }
 }
 
-function getTaskTitle(input: string, status: TaskStatus) {
-  const emoji = getStatusEmoji(status);
-  return `${getOutput(input)} ${emoji}`;
+function getTaskTitle(output: string, result: ScreenshotResult) {
+  const emoji = getStatusEmoji(result.status);
+  return `${output} ${emoji} ${result.error ?? ""}`;
 }
 
 yargs(hideBin(process.argv))
@@ -63,23 +59,18 @@ yargs(hideBin(process.argv))
         .describe("headed", "Show browser during capture"),
 
     async ({ filter, workers, headed }) => {
-      const inputs = [...new Glob("**/*.{png,jpg}.json").scanSync()].filter(
-        (input) => !filter || input.includes(filter)
-      );
+      const outputs = [
+        ...new Glob("**/*.{png,jpg}.json").scanSync({ absolute: true }),
+      ]
+        .filter((input) => !filter || input.includes(filter))
+        .map(getOutput);
 
       const tasks = new Listr(
-        inputs.map((input) => ({
-          title: getTaskTitle(input, "waiting"),
+        outputs.map((output) => ({
+          title: output,
           task: async (ctx, task) => {
-            try {
-              const res = await fetch(
-                "http://localhost:3637/screenshot?path=" + input
-              );
-              const json = await res.json();
-              task.title = getTaskTitle(input, json.action as TaskStatus);
-            } catch (error) {
-              task.title = getTaskTitle(`${input} ${error}`, "error");
-            }
+            const result = await getScreenshot(output);
+            task.title = getTaskTitle(output, result);
           },
         })),
         { concurrent: workers }
@@ -89,3 +80,18 @@ yargs(hideBin(process.argv))
     }
   )
   .parse();
+
+const ScreenshotResult = z.object({
+  status: z.enum(["created", "updated", "matched", "error"]),
+  error: z.string().optional(),
+});
+
+type ScreenshotResult = z.infer<typeof ScreenshotResult>;
+
+async function getScreenshot(path: string) {
+  const res = await fetch(`${SERVER_URL}/screenshot?path=${path}`);
+  if (res.status !== 200) {
+    return { status: "error" as const, error: "Newtwork error" };
+  }
+  return ScreenshotResult.parse(await res.json());
+}
