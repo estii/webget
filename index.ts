@@ -11,6 +11,10 @@ function getOutput(input: string) {
   return input.replace(".json", "");
 }
 
+function getRelative(path: string) {
+  return path.replace(process.cwd() + "/", "");
+}
+
 type TaskStatus =
   | "waiting"
   | "loading"
@@ -36,9 +40,12 @@ function getStatusEmoji(status: TaskStatus) {
   }
 }
 
-function getTaskTitle(output: string, result: ScreenshotResult) {
+function getTaskTitle(path: string, result?: ScreenshotResult) {
+  const relative = getRelative(path);
+  if (!result) return relative;
+
   const emoji = getStatusEmoji(result.status);
-  return `${output} ${emoji} ${result.error ?? ""}`;
+  return `${relative} ${emoji} ${result.error ?? ""}`;
 }
 
 yargs(hideBin(process.argv))
@@ -67,7 +74,7 @@ yargs(hideBin(process.argv))
 
       const tasks = new Listr(
         outputs.map((output) => ({
-          title: output,
+          title: getTaskTitle(output),
           task: async (ctx, task) => {
             const result = await getScreenshot(output);
             task.title = getTaskTitle(output, result);

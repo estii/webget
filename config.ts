@@ -1,3 +1,4 @@
+import { dirname, join } from "node:path";
 import { z } from "zod";
 
 export const ClickAction = z.object({
@@ -15,7 +16,7 @@ export type Action = z.infer<typeof Action>;
 export const Config = z
   .object({
     $schema: z.string().default("https://webget.com/schema.json"),
-    url: z.string().url().default("https://estii.com"),
+    url: z.string().default("https://estii.com"),
     deviceScaleFactor: z.number().min(1).default(2),
     baseUrl: z.string().optional(),
     width: z.number().min(1).default(1280),
@@ -26,3 +27,27 @@ export const Config = z
   .strict();
 
 export type Config = z.infer<typeof Config> & { path: string };
+
+async function getBaseConfig(path: string) {
+  const dir = dirname(path);
+  if (dir === "/") {
+    return null;
+  }
+
+  path = join(dir, "webget.json");
+  if (await Bun.file(path).exists()) {
+    return readConfig(path);
+  }
+
+  return getBaseConfig(dir);
+}
+
+async function readConfig(path: string) {
+  return Config.parse(await Bun.file(path).json());
+}
+
+export async function getConfig(path: string) {
+  const base = await getBaseConfig(path);
+  const config = await readConfig(`${path}.json`);
+  return { ...base, ...config, path };
+}

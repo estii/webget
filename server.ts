@@ -3,7 +3,7 @@ import os from "node:os";
 import { dirname, join } from "node:path";
 import { chromium, type Browser, type Page } from "playwright";
 import type { SsimResult } from "./browser";
-import { Config } from "./config";
+import { Config, getConfig } from "./config";
 import { PORT, SERVER_URL } from "./constants";
 
 function getType(path: string) {
@@ -21,11 +21,6 @@ function getMime(path: string) {
   return `image/${type}` as const;
 }
 
-async function getConfig(path: string) {
-  const json = await Bun.file(path + ".json").json();
-  return { path, ...Config.parse(json) };
-}
-
 async function getScript() {
   const output = await Bun.build({
     entrypoints: ["browser.ts"],
@@ -38,7 +33,7 @@ async function getScript() {
   throw new Error("No script found");
 }
 
-async function findConfig(path: string) {
+async function getBaseConfig(path: string) {
   const dir = dirname(path);
   if (dir === "/") {
     return null;
@@ -46,10 +41,10 @@ async function findConfig(path: string) {
 
   const file = Bun.file(join(dir, "webget.json"));
   if (await file.exists()) {
-    return Config.parse(file.json());
+    return Config.parse(await file.json());
   }
 
-  return findConfig(dir);
+  return getBaseConfig(dir);
 }
 
 let browser: Browser | null = null;
@@ -85,10 +80,11 @@ async function getScreenshot(path: string) {
   const context = await browser.newContext({
     screen: { width: config.width, height: config.height },
     deviceScaleFactor: config.deviceScaleFactor,
+    baseURL: config.baseUrl,
   });
 
   const page = await context.newPage();
-  page.setDefaultTimeout(1000);
+  page.setDefaultTimeout(2000);
   page.setDefaultNavigationTimeout(10000);
   // page.on("console", (msg) => console.log("log", msg.text()));
   // page.on("pageerror", (msg) => console.log("error", msg));

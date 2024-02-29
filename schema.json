@@ -7,7 +7,6 @@
     },
     "url": {
       "type": "string",
-      "format": "uri",
       "default": "https://estii.com"
     },
     "deviceScaleFactor": {
