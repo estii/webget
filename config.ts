@@ -1,21 +1,18 @@
 import { dirname, join } from "node:path";
 import { z } from "zod";
+import { ClickAction } from "./actions/click";
+import { CropAction } from "./actions/crop";
+import { FillAction } from "./actions/fill";
+import { HoverAction } from "./actions/hover";
+import { WaitAction } from "./actions/wait";
 
-export const ClickAction = z.object({
-  type: z.literal("click"),
-  selector: z.string(),
-  frame: z.string().optional(),
-});
-
-export const CropAction = z.object({
-  type: z.literal("crop"),
-  selector: z.string(),
-});
-
-export type ClickAction = z.infer<typeof ClickAction>;
-export type CropAction = z.infer<typeof CropAction>;
-
-export const Action = z.discriminatedUnion("type", [ClickAction, CropAction]);
+export const Action = z.discriminatedUnion("type", [
+  ClickAction,
+  HoverAction,
+  FillAction,
+  WaitAction,
+  CropAction,
+]);
 
 export type Action = z.infer<typeof Action>;
 

@@ -1,9 +1,15 @@
 import { unlink } from "node:fs/promises";
 import os from "node:os";
 import { dirname, join } from "node:path";
-import { chromium, type Frame, type Locator, type Page } from "playwright";
+import { chromium, type Page } from "playwright";
+import { ZodError } from "zod";
+import { clickAction } from "./actions/click";
+import { cropAction, type CropResult } from "./actions/crop";
+import { fillAction } from "./actions/fill";
+import { hoverAction } from "./actions/hover";
+import { waitAction } from "./actions/wait";
 import type { SsimResult } from "./browser";
-import { ClickAction, Config, getConfig } from "./config";
+import { Config, getConfig } from "./config";
 import { PORT, SERVER_URL } from "./constants";
 
 function getType(path: string) {
@@ -66,7 +72,18 @@ async function getBrowser(headless = true) {
 }
 
 async function getScreenshot(path: string, headless: boolean) {
-  const config = await getConfig(path);
+  let config: Config;
+  try {
+    config = await getConfig(path);
+  } catch (error) {
+    if (error instanceof ZodError) {
+      const [first] = error.issues;
+      if (first) {
+        return Response.json({ status: "error", error: first.message });
+      }
+    }
+    return Response.json({ status: "error", error: String(error) });
+  }
   const browser = await getBrowser(headless);
   const context = await browser.newContext({
     screen: { width: config.width, height: config.height },
@@ -101,28 +118,10 @@ async function getScreenshotResult(page: Page, config: Config) {
   }
 }
 
-async function clickAction(page: Page, action: ClickAction) {
-  let target: Page | Frame = page;
-
-  if (action.frame) {
-    const frame = page.frame(action.frame);
-    if (!frame) {
-      throw new Error(`frame "${action.frame}" not found`);
-    }
-    target = frame;
-  }
-
-  try {
-    await target.locator(action.selector).click();
-  } catch (error) {
-    throw new Error(`selector "${action.selector}" not found`);
-  }
-}
-
 async function updateScreenshot(page: Page, config: Config) {
   const output = config.path;
   const temp = join(os.tmpdir(), output);
-  let crop: null | string = null;
+  let crop: CropResult = { target: page };
 
   await page.goto(config.url, { waitUntil: "networkidle" });
 
@@ -130,7 +129,13 @@ async function updateScreenshot(page: Page, config: Config) {
     if (action.type === "click") {
       await clickAction(page, action);
     } else if (action.type === "crop") {
-      crop = action.selector;
+      crop = await cropAction(page, action);
+    } else if (action.type === "wait") {
+      await waitAction(page, action);
+    } else if (action.type === "fill") {
+      await fillAction(page, action);
+    } else if (action.type === "hover") {
+      await hoverAction(page, action);
     }
   }
 
@@ -138,15 +143,11 @@ async function updateScreenshot(page: Page, config: Config) {
   const path = exists ? temp : output;
   const type = getType(output);
 
-  let target: Page | Locator = page;
-  if (crop) {
-    target = page.locator(crop);
-  }
-
-  await target.screenshot({
+  await crop.target.screenshot({
     path,
     type,
     quality: type === "jpeg" ? config.quality : undefined,
+    clip: crop.rect,
   });
 
   if (exists) {

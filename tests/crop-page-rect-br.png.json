@@ -1,0 +1,16 @@
+{
+  "$schema": "../schema.json",
+  "url": "https://estii.com",
+  "actions": [
+    {
+      "type": "crop",
+      "area": {
+        "type": "rect",
+        "x": "right",
+        "y": "bottom",
+        "width": 400,
+        "height": 300
+      }
+    }
+  ]
+}

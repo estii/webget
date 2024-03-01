@@ -41,9 +41,12 @@ function getStatusEmoji(status: TaskStatus) {
 }
 
 function getTaskTitle(path: string, result?: ScreenshotResult) {
-  const relative = getRelative(path);
+  let relative = getRelative(path);
   if (!result) return relative;
 
+  if (result.error) {
+    relative = getRelative(path + ".json");
+  }
   const emoji = getStatusEmoji(result.status);
   return `${relative} ${emoji} ${result.error ?? ""}`;
 }
@@ -60,7 +63,7 @@ yargs(hideBin(process.argv))
 
         .option("workers", { type: "number" })
         .describe("workers", "The number of screenshots to generate at once")
-        .default("workers", 5)
+        .default("workers", 8)
 
         .boolean("headed")
         .describe("headed", "Show browser during capture"),
@@ -71,6 +74,8 @@ yargs(hideBin(process.argv))
       ]
         .filter((input) => !filter || input.includes(filter))
         .map(getOutput);
+
+      outputs.sort();
 
       const tasks = new Listr(
         outputs.map((output) => ({
