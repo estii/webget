@@ -28,6 +28,12 @@ export const Config = z
     width: z.number().min(1).default(1280),
     height: z.number().min(1).default(720),
     actions: z.array(Action).default([]),
+    quality: z.number().min(0).max(100).default(80),
+    reducedMotion: z.enum(["no-preference", "reduce"]).default("reduce"),
+    colorScheme: z
+      .enum(["no-preference", "light", "dark"])
+      .default("no-preference"),
+    forcedColors: z.enum(["none", "active"]).default("none"),
   })
   .describe("Screenshot configuration")
   .strict();

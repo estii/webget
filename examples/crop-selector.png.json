@@ -5,6 +5,10 @@
     {
       "type": "click",
       "selector": "button[data-component=CookieBanner_AcceptABCRequired]"
+    },
+    {
+      "type": "crop",
+      "selector": "header[data-component=MastheadBox]"
     }
   ]
 }

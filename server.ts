@@ -1,7 +1,7 @@
 import { unlink } from "node:fs/promises";
 import os from "node:os";
 import { dirname, join } from "node:path";
-import { chromium, type Frame, type Page } from "playwright";
+import { chromium, type Frame, type Locator, type Page } from "playwright";
 import type { SsimResult } from "./browser";
 import { ClickAction, Config, getConfig } from "./config";
 import { PORT, SERVER_URL } from "./constants";
@@ -70,8 +70,11 @@ async function getScreenshot(path: string, headless: boolean) {
   const browser = await getBrowser(headless);
   const context = await browser.newContext({
     screen: { width: config.width, height: config.height },
-    deviceScaleFactor: config.deviceScaleFactor,
     baseURL: config.baseUrl,
+    deviceScaleFactor: config.deviceScaleFactor,
+    colorScheme: config.colorScheme,
+    reducedMotion: config.reducedMotion,
+    forcedColors: config.forcedColors,
   });
 
   const page = await context.newPage();
@@ -119,12 +122,15 @@ async function clickAction(page: Page, action: ClickAction) {
 async function updateScreenshot(page: Page, config: Config) {
   const output = config.path;
   const temp = join(os.tmpdir(), output);
+  let crop: null | string = null;
 
   await page.goto(config.url, { waitUntil: "networkidle" });
 
   for (const action of config.actions) {
     if (action.type === "click") {
       await clickAction(page, action);
+    } else if (action.type === "crop") {
+      crop = action.selector;
     }
   }
 
@@ -132,7 +138,16 @@ async function updateScreenshot(page: Page, config: Config) {
   const path = exists ? temp : output;
   const type = getType(output);
 
-  await page.screenshot({ path, type });
+  let target: Page | Locator = page;
+  if (crop) {
+    target = page.locator(crop);
+  }
+
+  await target.screenshot({
+    path,
+    type,
+    quality: type === "jpeg" ? config.quality : undefined,
+  });
 
   if (exists) {
     const result = await compareImages(output, temp);

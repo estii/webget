@@ -50,10 +50,58 @@
               "selector"
             ],
             "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "crop"
+              },
+              "selector": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "type",
+              "selector"
+            ],
+            "additionalProperties": false
           }
         ]
       },
       "default": []
+    },
+    "quality": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "default": 80
+    },
+    "reducedMotion": {
+      "type": "string",
+      "enum": [
+        "no-preference",
+        "reduce"
+      ],
+      "default": "reduce"
+    },
+    "colorScheme": {
+      "type": "string",
+      "enum": [
+        "no-preference",
+        "light",
+        "dark"
+      ],
+      "default": "no-preference"
+    },
+    "forcedColors": {
+      "type": "string",
+      "enum": [
+        "none",
+        "active"
+      ],
+      "default": "none"
     }
   },
   "additionalProperties": false,
