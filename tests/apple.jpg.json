@@ -1,5 +1,10 @@
 {
   "$schema": "../schema.json",
   "url": "https://apple.com",
-  "actions": []
+  "actions": [
+    {
+      "type": "click",
+      "selector": "#ac-ls-close"
+    }
+  ]
 }

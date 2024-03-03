@@ -1,6 +1,5 @@
-import { unlink } from "node:fs/promises";
 import os from "node:os";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 import { chromium, type Page } from "playwright";
 import { ZodError } from "zod";
 import { clickAction } from "./actions/click";
@@ -11,21 +10,7 @@ import { waitAction } from "./actions/wait";
 import type { SsimResult } from "./browser";
 import { Config, getConfig } from "./config";
 import { PORT, SERVER_URL } from "./constants";
-
-function getType(path: string) {
-  if (path.endsWith(".png")) {
-    return "png";
-  }
-  if (path.endsWith(".jpg")) {
-    return "jpeg";
-  }
-  throw new Error(`Invalid file type ${path}`);
-}
-
-function getMime(path: string) {
-  const type = getType(path);
-  return `image/${type}` as const;
-}
+import { getMime, getOutputType } from "./utils";
 
 async function getScript() {
   const output = await Bun.build({
@@ -35,22 +20,8 @@ async function getScript() {
 
   const [script] = output.outputs;
   if (script) return script.text();
-
+  console.log(output.logs);
   throw new Error("No script found");
-}
-
-async function getBaseConfig(path: string) {
-  const dir = dirname(path);
-  if (dir === "/") {
-    return null;
-  }
-
-  const file = Bun.file(join(dir, "webget.json"));
-  if (await file.exists()) {
-    return Config.parse(await file.json());
-  }
-
-  return getBaseConfig(dir);
 }
 
 const headedBrowser = chromium.launch({ headless: false });
@@ -61,6 +32,8 @@ const runtime = headlessBrowser.then(async (browser) => {
   const script = await getScript();
   await page.addInitScript({ content: script });
   await page.goto(SERVER_URL);
+  page.on("console", (msg) => console.log(msg.type(), msg.text()));
+  page.on("pageerror", (msg) => console.log("runtime", msg));
   return page;
 });
 
@@ -97,8 +70,6 @@ async function getScreenshot(path: string, headless: boolean) {
   const page = await context.newPage();
   page.setDefaultTimeout(2000);
   page.setDefaultNavigationTimeout(10000);
-  // page.on("console", (msg) => console.log("log", msg.text()));
-  // page.on("pageerror", (msg) => console.log("error", msg));
 
   const result = await getScreenshotResult(page, config);
 
@@ -120,7 +91,7 @@ async function getScreenshotResult(page: Page, config: Config) {
 
 async function updateScreenshot(page: Page, config: Config) {
   const output = config.path;
-  const temp = join(os.tmpdir(), output);
+  const temp = join(os.tmpdir(), config.path);
   let crop: CropResult = { target: page };
 
   await page.goto(config.url, { waitUntil: "networkidle" });
@@ -141,7 +112,7 @@ async function updateScreenshot(page: Page, config: Config) {
 
   const exists = await Bun.file(output).exists();
   const path = exists ? temp : output;
-  const type = getType(output);
+  const type = getOutputType(output);
 
   await crop.target.screenshot({
     path,
@@ -157,7 +128,6 @@ async function updateScreenshot(page: Page, config: Config) {
     if (!matched) {
       await Bun.write(output, Bun.file(temp));
     }
-    await unlink(temp);
 
     return {
       status: matched ? "matched" : "updated",
@@ -199,6 +169,15 @@ Bun.serve({
       const mime = getMime(path);
       const file = Bun.file(path);
       return new Response(file, { headers: { "Content-Type": mime } });
+    }
+
+    if (path === "/diff") {
+      const path = url.searchParams.get("path");
+      if (!path) {
+        return new Response(null, { status: 400 });
+      }
+      await Bun.write(path, await req.arrayBuffer());
+      return new Response(null, { status: 200 });
     }
 
     return new Response(null, { status: 404 });

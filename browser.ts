@@ -4,6 +4,7 @@
  */
 
 import { SERVER_URL } from "./constants";
+import { getDiffPath, getMime } from "./utils";
 
 type SsimInput = {
   data: Uint8ClampedArray;
@@ -212,21 +213,11 @@ function getSsimResult(
 }
 
 function loadImage(path: string) {
-  return new Promise<SsimInput>((resolve, reject) => {
+  return new Promise<HTMLImageElement>((resolve, reject) => {
     const url = `${SERVER_URL}/image?path=${path}`;
     const image = new Image();
     image.onload = () => {
-      const { width, height } = image;
-      const canvas = document.createElement("canvas");
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext("2d");
-      if (ctx === null) {
-        throw new Error("Could not get 2d context");
-      }
-      ctx.drawImage(image, 0, 0);
-      const { data } = ctx.getImageData(0, 0, image.width, image.height);
-      resolve({ data, width, height, channels: 3 });
+      resolve(image);
     };
     image.onerror = (e) => {
       reject(new Error(`Could not load ${url}, ${e}`));
@@ -235,10 +226,79 @@ function loadImage(path: string) {
   });
 }
 
+function getImageData(image: HTMLImageElement) {
+  const { width, height } = image;
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  if (ctx === null) {
+    throw new Error("Could not get 2d context");
+  }
+  ctx.drawImage(image, 0, 0);
+  const { data } = ctx.getImageData(0, 0, image.width, image.height);
+  return { data, width, height, channels: 3 as const };
+}
+
+function dataUrlToBlob(dataUrl: string) {
+  const arr = dataUrl.split(",");
+  const bstr = atob(arr[1]);
+  let n = bstr.length;
+  const u8arr = new Uint8Array(n);
+  while (n--) {
+    u8arr[n] = bstr.charCodeAt(n);
+  }
+  return u8arr;
+}
+
+function getDiff(
+  mime: string,
+  image1: HTMLImageElement,
+  image2: HTMLImageElement
+) {
+  const canvas = document.createElement("canvas");
+  canvas.width = image1.width;
+  canvas.height = image1.height;
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  if (ctx === null) {
+    throw new Error("Could not get 2d context");
+  }
+
+  ctx.drawImage(image2, 0, 0);
+  const imgData2 = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+  ctx.drawImage(image1, 0, 0);
+  const imgData1 = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+  const overlayData = ctx.createImageData(canvas.width, canvas.height);
+
+  const scaleFactor = 1;
+  for (var i = 0; i < imgData1.data.length; i += 4) {
+    const diff = Math.abs(imgData1.data[i] - imgData2.data[i]);
+    overlayData.data[i] = diff * scaleFactor; // Red
+    overlayData.data[i + 1] = 0;
+    overlayData.data[i + 2] = 0;
+    overlayData.data[i + 3] = 255;
+  }
+
+  // ctx.globalCompositeOperation = "difference";
+  ctx.putImageData(overlayData, 0, 0);
+
+  const dataUrl = canvas.toDataURL(mime);
+  return dataUrlToBlob(dataUrl);
+}
+
 function compare(path1: string, path2: string) {
+  console.log(path1);
+  console.log(path2);
   return Promise.all([loadImage(path1), loadImage(path2)]).then(
-    ([image1, image2]) => {
-      return getSsimResult(image1, image2);
+    async ([image1, image2]) => {
+      const path = getDiffPath(path1);
+      await fetch(`${SERVER_URL}/diff?path=${path}`, {
+        method: "POST",
+        body: getDiff(getMime(path1), image1, image2),
+      });
+      return getSsimResult(getImageData(image1), getImageData(image2));
     }
   );
 }

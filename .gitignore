@@ -1,2 +1,3 @@
 node_modules
-tests/*.{png,jpg}
+tests/*.png
+tests/*.jpg
