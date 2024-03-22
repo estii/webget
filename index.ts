@@ -66,9 +66,12 @@ yargs(hideBin(process.argv))
         .default("workers", 8)
 
         .boolean("headed")
-        .describe("headed", "Show browser during capture"),
+        .describe("headed", "Show browser during capture")
 
-    async ({ filter, workers, headed }) => {
+        .boolean("diff")
+        .describe("diff", "Show browser during capture"),
+
+    async ({ filter, workers, headed, diff }) => {
       const outputs = [
         ...new Glob("**/*.{png,jpg}.json").scanSync({ absolute: true }),
       ]
@@ -81,7 +84,7 @@ yargs(hideBin(process.argv))
         outputs.map((output) => ({
           title: getTaskTitle(output),
           task: async (ctx, task) => {
-            const result = await getScreenshot(output, headed);
+            const result = await getScreenshot(output, headed, diff);
             task.title = getTaskTitle(output, result);
           },
         })),
@@ -100,9 +103,11 @@ const ScreenshotResult = z.object({
 
 type ScreenshotResult = z.infer<typeof ScreenshotResult>;
 
-async function getScreenshot(path: string, headed = false) {
+async function getScreenshot(path: string, headed = false, diff = false) {
   const res = await fetch(
-    `${SERVER_URL}/screenshot?path=${path}&headed=${headed ? "1" : "0"}`
+    `${SERVER_URL}/screenshot?path=${path}&headed=${headed ? "1" : "0"}&diff=${
+      diff ? "1" : "0"
+    }`
   );
   if (res.status !== 200) {
     return { status: "error" as const, error: "Newtwork error" };

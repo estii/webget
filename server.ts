@@ -7,7 +7,12 @@ import { cropAction, type CropResult } from "./actions/crop";
 import { fillAction } from "./actions/fill";
 import { hoverAction } from "./actions/hover";
 import { waitAction } from "./actions/wait";
-import type { SsimResult } from "./browser";
+import type {
+  CompareParams,
+  CompareResult,
+  CompositeParams,
+  CompositeResult,
+} from "./browser";
 import { Config, getConfig } from "./config";
 import { PORT, SERVER_URL } from "./constants";
 import { getMime, getOutputType } from "./utils";
@@ -37,14 +42,19 @@ const runtime = headlessBrowser.then(async (browser) => {
   return page;
 });
 
-async function getBrowser(headless = true) {
-  if (headless) {
+async function getBrowser(options: Options) {
+  if (options.headless) {
     return headlessBrowser;
   }
   return headedBrowser;
 }
 
-async function getScreenshot(path: string, headless: boolean) {
+type Options = {
+  headless: boolean;
+  diff: boolean;
+};
+
+async function getScreenshot(options: Options, path: string) {
   let config: Config;
   try {
     config = await getConfig(path);
@@ -57,9 +67,9 @@ async function getScreenshot(path: string, headless: boolean) {
     }
     return Response.json({ status: "error", error: String(error) });
   }
-  const browser = await getBrowser(headless);
+  const browser = await getBrowser(options);
   const context = await browser.newContext({
-    screen: { width: config.width, height: config.height },
+    viewport: { width: config.width, height: config.height },
     baseURL: config.baseUrl,
     deviceScaleFactor: config.deviceScaleFactor,
     colorScheme: config.colorScheme,
@@ -71,16 +81,34 @@ async function getScreenshot(path: string, headless: boolean) {
   page.setDefaultTimeout(2000);
   page.setDefaultNavigationTimeout(10000);
 
-  const result = await getScreenshotResult(page, config);
+  const result = await getScreenshotResult(options, page, config);
 
   await page.close();
   await context.close();
   return Response.json(result);
 }
 
-async function getScreenshotResult(page: Page, config: Config) {
+async function getTemplate(options: Options, config: Config, path: string) {
+  const browser = await getBrowser(options);
+  const page = await browser.newPage({
+    viewport: { width: 473, height: 932 },
+    deviceScaleFactor: 3,
+  });
+  const url = `http://localhost:5173/?url=${config.url}&path=${path}`;
+  await page.goto(url, { waitUntil: "networkidle" });
+  const root = page.locator("#root");
+  const image = await root.screenshot({ omitBackground: true });
+  await page.close();
+  return image;
+}
+
+async function getScreenshotResult(
+  options: Options,
+  page: Page,
+  config: Config
+) {
   try {
-    return await updateScreenshot(page, config);
+    return await updateScreenshot(options, page, config);
   } catch (error) {
     if (error instanceof Error) {
       return { status: "error", error: error.message };
@@ -89,7 +117,7 @@ async function getScreenshotResult(page: Page, config: Config) {
   }
 }
 
-async function updateScreenshot(page: Page, config: Config) {
+async function updateScreenshot(options: Options, page: Page, config: Config) {
   const output = config.path;
   const temp = join(os.tmpdir(), config.path);
   let crop: CropResult = { target: page };
@@ -111,18 +139,24 @@ async function updateScreenshot(page: Page, config: Config) {
   }
 
   const exists = await Bun.file(output).exists();
-  const path = exists ? temp : output;
+  // const path = exists ? temp : output;
   const type = getOutputType(output);
 
   await crop.target.screenshot({
-    path,
+    path: temp,
     type,
     quality: type === "jpeg" ? config.quality : undefined,
     clip: crop.rect,
   });
 
-  if (exists) {
-    const result = await compareImages(output, temp);
+  // const template = "/Users/dpeek/code/webget/assets/safari.png";
+  // await composite({ path1: template, path2: temp, x: 40 * 3, y: 99 * 3 });
+
+  const template = await getTemplate(options, config, temp);
+  await Bun.write(temp, template);
+
+  if (exists && !options.diff) {
+    const result = await compare({ path1: output, path2: temp });
 
     const matched = result.ssim > 0.99;
     if (!matched) {
@@ -135,6 +169,8 @@ async function updateScreenshot(page: Page, config: Config) {
         ? undefined
         : `similarity ${Math.round(result.ssim * 100)}%`,
     };
+  } else {
+    await Bun.write(output, Bun.file(temp));
   }
 
   return { status: "created" };
@@ -153,25 +189,28 @@ Bun.serve({
     if (path === "/screenshot") {
       const path = url.searchParams.get("path");
       const headless = url.searchParams.get("headed") !== "1";
+      const diff = url.searchParams.get("diff") === "1";
       if (!path) {
         console.log("No path");
         return new Response(null, { status: 400 });
       }
-      const result = await getScreenshot(path, headless);
+      const result = await getScreenshot({ headless, diff }, path);
       return result;
     }
 
-    if (path === "/image") {
+    if (path === "/image" && req.method === "GET") {
       const path = url.searchParams.get("path");
       if (!path) {
         return new Response(null, { status: 400 });
       }
       const mime = getMime(path);
       const file = Bun.file(path);
-      return new Response(file, { headers: { "Content-Type": mime } });
+      return new Response(file, {
+        headers: { "Content-Type": mime, "Cache-Control": "no-store" },
+      });
     }
 
-    if (path === "/diff") {
+    if (path === "/image" && req.method === "POST") {
       const path = url.searchParams.get("path");
       if (!path) {
         return new Response(null, { status: 400 });
@@ -187,16 +226,19 @@ Bun.serve({
   },
 });
 
-async function compareImages(path1: string, path2: string) {
+async function compare(params: CompareParams) {
   const page = await runtime;
-  return page.evaluate(({ path1, path2 }) => window.compare(path1, path2), {
-    path1,
-    path2,
-  });
+  return page.evaluate((params) => window.compare(params), params);
+}
+
+async function composite(params: CompositeParams) {
+  const page = await runtime;
+  return page.evaluate((params) => window.composite(params), params);
 }
 
 declare global {
   interface Window {
-    compare: (path1: string, path2: string) => Promise<SsimResult>;
+    compare: (params: CompareParams) => Promise<CompareResult>;
+    composite: (params: CompositeParams) => Promise<CompositeResult>;
   }
 }
