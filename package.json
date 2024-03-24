@@ -22,7 +22,7 @@
     "zod-to-json-schema": "^3.22.4"
   },
   "scripts": {
-    "clean": "rm tests/*.{jpg,png}",
+    "clean": "rm tests/**/*.{jpg,png}",
     "schema": "bun schema.ts",
     "server": "bun --watch server.ts"
   }

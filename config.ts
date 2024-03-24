@@ -16,7 +16,19 @@ export const Action = z.discriminatedUnion("type", [
 
 export type Action = z.infer<typeof Action>;
 
-export const Config = z
+const deviceTypeSchema = z.enum([
+  "iMac24",
+  "iMac27",
+  "iPadPro11",
+  "iPadPro129",
+  "iPhone15Pro",
+  "MacBookPro14",
+  "MacBookPro16",
+]);
+
+export type DeviceType = z.infer<typeof deviceTypeSchema>;
+
+export const configSchema = z
   .object({
     $schema: z.string().default("https://webget.com/schema.json"),
     url: z.string().default("https://estii.com"),
@@ -31,11 +43,12 @@ export const Config = z
       .enum(["no-preference", "light", "dark"])
       .default("no-preference"),
     forcedColors: z.enum(["none", "active"]).default("none"),
+    device: z.optional(deviceTypeSchema),
   })
   .describe("Screenshot configuration")
   .strict();
 
-export type Config = z.infer<typeof Config> & { path: string };
+export type Config = z.infer<typeof configSchema> & { path: string };
 
 async function getBaseConfig(path: string) {
   const dir = dirname(path);
@@ -52,7 +65,7 @@ async function getBaseConfig(path: string) {
 }
 
 async function readConfig(path: string) {
-  return Config.parse(await Bun.file(path).json());
+  return configSchema.parse(await Bun.file(path).json());
 }
 
 export async function getConfig(path: string) {

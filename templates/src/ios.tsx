@@ -107,7 +107,7 @@ function LockIcon() {
       <path
         d="M1.79341 13.5H8.20659C9.0756 13.5 9.5 13.0736 9.5 12.1407V7.24987C9.5 6.4103 9.1497 5.97719 8.42889 5.9039V4.22476C8.42889 1.71271 6.76497 0.5 5 0.5C3.23503 0.5 1.57111 1.71271 1.57111 4.22476V5.93721C0.910928 6.03716 0.5 6.46361 0.5 7.24987V12.1407C0.5 13.0736 0.924401 13.5 1.79341 13.5ZM2.65569 4.08483C2.65569 2.41235 3.74027 1.52614 5 1.52614C6.25973 1.52614 7.34431 2.41235 7.34431 4.08483V5.89723L2.65569 5.9039V4.08483Z"
         fill="black"
-        fill-opacity="0.5"
+        fillOpacity="0.5"
       />
     </svg>
   );
@@ -203,42 +203,70 @@ export function Phone() {
   const secure = searchParams.get("secure")
     ? searchParams.get("secure") === "1"
     : url.protocol === "https:";
+  const background = searchParams.get("background") ?? "white";
+  const device = searchParams.get("device") ?? "iPhone15Pro";
 
-  if (!path) {
-    return <h1>No Path</h1>;
-  }
+  const backgroundImage = path
+    ? `url(http://localhost:3637/image?path=${path})`
+    : undefined;
+
+  const ios = device === "iPhone15Pro";
+
   return (
-    <div className="phone">
-      <div className="viewport">
-        <div className="header">
-          <div>{time}</div>
-          <div className="space" />
-          <CellularIcon />
-          <WifiIcon />
-          <BatteryIcon />
-        </div>
-        <img
-          src={`http://localhost:3637/image?path=${path}`}
-          width="393"
-          height="793"
-        />
-        <div className="footer">
-          <div className="search">
-            <FontIcon />
-            <div className="domain">
-              {secure && <LockIcon />}
-              <div>{domain}</div>
+    <div id="device" className={device}>
+      <div className="screen">
+        {ios ? (
+          <div
+            className="header"
+            style={{
+              backgroundColor: background,
+              color: background === "white" ? "black" : "white",
+            }}
+          >
+            <div>{time}</div>
+            <div className="space" />
+            <CellularIcon />
+            <WifiIcon />
+            <BatteryIcon />
+          </div>
+        ) : (
+          <div className="header" />
+        )}
+        <div className="content" style={{ backgroundImage }} />
+        {ios ? (
+          <div className="footer">
+            <div className="search">
+              <FontIcon />
+              <div className="domain">
+                {secure && <LockIcon />}
+                <div>{domain}</div>
+              </div>
+              <RefreshIcon />
             </div>
-            <RefreshIcon />
+            <div className="buttons">
+              <BackIcon />
+              <NextIcon />
+              <ShareIcon />
+              <BookmarksIcon />
+              <TabsIcon />
+            </div>
           </div>
-          <div className="buttons">
-            <BackIcon />
-            <NextIcon />
-            <ShareIcon />
-            <BookmarksIcon />
-            <TabsIcon />
-          </div>
-        </div>
+        ) : (
+          <div className="footer" />
+        )}
+      </div>
+      <div className="bezel" />
+    </div>
+  );
+
+  return (
+    <div
+      className={`device ${device}`}
+      style={{
+        backgroundImage: `url(http://localhost:3637/image?path=${bezel})`,
+      }}
+    >
+      <div className="viewport">
         <div className="swiper" />
       </div>
       <div className="bezel" />

@@ -238,6 +238,18 @@
         "active"
       ],
       "default": "none"
+    },
+    "device": {
+      "type": "string",
+      "enum": [
+        "iMac24",
+        "iMac27",
+        "iPadPro11",
+        "iPadPro129",
+        "iPhone15Pro",
+        "MacBookPro14",
+        "MacBookPro16"
+      ]
     }
   },
   "additionalProperties": false,

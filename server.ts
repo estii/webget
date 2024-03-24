@@ -13,7 +13,7 @@ import type {
   CompositeParams,
   CompositeResult,
 } from "./browser";
-import { Config, getConfig } from "./config";
+import { getConfig, type Config } from "./config";
 import { PORT, SERVER_URL } from "./constants";
 import { getMime, getOutputType } from "./utils";
 
@@ -29,8 +29,9 @@ async function getScript() {
   throw new Error("No script found");
 }
 
-const headedBrowser = chromium.launch({ headless: false });
-const headlessBrowser = chromium.launch({ headless: true });
+const channel = "chrome";
+const headedBrowser = chromium.launch({ headless: false, channel });
+const headlessBrowser = chromium.launch({ headless: true, channel });
 
 const runtime = headlessBrowser.then(async (browser) => {
   const page = await browser.newPage();
@@ -88,20 +89,6 @@ async function getScreenshot(options: Options, path: string) {
   return Response.json(result);
 }
 
-async function getTemplate(options: Options, config: Config, path: string) {
-  const browser = await getBrowser(options);
-  const page = await browser.newPage({
-    viewport: { width: 473, height: 932 },
-    deviceScaleFactor: 3,
-  });
-  const url = `http://localhost:5173/?url=${config.url}&path=${path}`;
-  await page.goto(url, { waitUntil: "networkidle" });
-  const root = page.locator("#root");
-  const image = await root.screenshot({ omitBackground: true });
-  await page.close();
-  return image;
-}
-
 async function getScreenshotResult(
   options: Options,
   page: Page,
@@ -122,7 +109,7 @@ async function updateScreenshot(options: Options, page: Page, config: Config) {
   const temp = join(os.tmpdir(), config.path);
   let crop: CropResult = { target: page };
 
-  await page.goto(config.url, { waitUntil: "networkidle" });
+  await page.goto(config.url);
 
   for (const action of config.actions) {
     if (action.type === "click") {
@@ -139,23 +126,66 @@ async function updateScreenshot(options: Options, page: Page, config: Config) {
   }
 
   const exists = await Bun.file(output).exists();
-  // const path = exists ? temp : output;
   const type = getOutputType(output);
 
-  await crop.target.screenshot({
-    path: temp,
-    type,
-    quality: type === "jpeg" ? config.quality : undefined,
-    clip: crop.rect,
-  });
+  if (config.device) {
+    const browser = await getBrowser(options);
+    const template = await browser.newPage({
+      deviceScaleFactor: config.device === "iPhone15Pro" ? 3 : 2,
+    });
 
-  // const template = "/Users/dpeek/code/webget/assets/safari.png";
-  // await composite({ path1: template, path2: temp, x: 40 * 3, y: 99 * 3 });
+    const url = new URL(SERVER_URL);
+    url.searchParams.set("device", config.device);
+    await template.goto(url.href, { waitUntil: "networkidle" });
 
-  const template = await getTemplate(options, config, temp);
-  await Bun.write(temp, template);
+    // measure the size of the .device element
+    let device = template.locator("#device");
+    const deviceRect = await device.boundingBox();
+    if (!deviceRect) {
+      throw new Error("No bezel element found");
+    }
 
-  if (exists && !options.diff) {
+    await template.setViewportSize({
+      width: deviceRect.width,
+      height: deviceRect.height,
+    });
+
+    const content = template.locator("#device .content");
+    const contentRect = await content.boundingBox();
+    if (!contentRect) {
+      throw new Error("No bezel element found");
+    }
+
+    await page.setViewportSize({
+      width: contentRect.width,
+      height: contentRect.height,
+    });
+
+    await page.screenshot({
+      path: temp,
+      type,
+      quality: type === "jpeg" ? config.quality : undefined,
+    });
+
+    url.searchParams.set("url", config.url);
+    url.searchParams.set("path", temp);
+    url.searchParams.set("background", "white");
+    await template.goto(url.href, { waitUntil: "networkidle" });
+
+    device = template.locator("#device");
+    const image = await device.screenshot({ omitBackground: true });
+    await template.close();
+    await Bun.write(temp, image);
+  } else {
+    await crop.target.screenshot({
+      path: temp,
+      type,
+      quality: type === "jpeg" ? config.quality : undefined,
+      clip: crop.rect,
+    });
+  }
+
+  if (exists && options.diff) {
     const result = await compare({ path1: output, path2: temp });
 
     const matched = result.ssim > 0.99;
@@ -181,10 +211,6 @@ Bun.serve({
   async fetch(req) {
     const url = new URL(req.url);
     const path = url.pathname;
-
-    if (path === "/") {
-      return new Response("");
-    }
 
     if (path === "/screenshot") {
       const path = url.searchParams.get("path");
@@ -219,7 +245,9 @@ Bun.serve({
       return new Response(null, { status: 200 });
     }
 
-    return new Response(null, { status: 404 });
+    const file = path === "/" ? "/index.html" : path;
+    const dist = `./templates/dist${file}`;
+    return new Response(Bun.file(dist), { status: 200 });
   },
   error() {
     return new Response(null, { status: 404 });
