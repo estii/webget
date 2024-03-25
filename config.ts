@@ -44,6 +44,7 @@ export const configSchema = z
       .default("no-preference"),
     forcedColors: z.enum(["none", "active"]).default("none"),
     device: z.optional(deviceTypeSchema),
+    template: z.string().optional(),
   })
   .describe("Screenshot configuration")
   .strict();

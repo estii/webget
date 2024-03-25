@@ -128,7 +128,41 @@ async function updateScreenshot(options: Options, page: Page, config: Config) {
   const exists = await Bun.file(output).exists();
   const type = getOutputType(output);
 
-  if (config.device) {
+  if (config.template) {
+    const template = await runtime;
+    await template.goto(
+      `${SERVER_URL}/public/templates/${config.template}.html`
+    );
+
+    const frame = template.locator("#frame");
+    const frameRect = await frame.boundingBox();
+    if (!frameRect) {
+      throw new Error("No frame element found");
+    }
+    console.log(frameRect);
+
+    await template.setViewportSize({
+      width: frameRect.width,
+      height: frameRect.height,
+    });
+
+    await page.screenshot({
+      path: temp,
+      type,
+      quality: type === "jpeg" ? config.quality : undefined,
+    });
+
+    const content = template.locator("#frame img");
+    const element = content.first();
+    element.evaluate(
+      (el: HTMLImageElement, temp) =>
+        (el.src = `http://localhost:3637/image?path=${temp}`),
+      temp
+    );
+
+    const image = await template.screenshot({ omitBackground: true });
+    await Bun.write(temp, image);
+  } else if (config.device) {
     const browser = await getBrowser(options);
     const template = await browser.newPage({
       deviceScaleFactor: config.device === "iPhone15Pro" ? 3 : 2,
@@ -243,6 +277,12 @@ Bun.serve({
       }
       await Bun.write(path, await req.arrayBuffer());
       return new Response(null, { status: 200 });
+    }
+
+    if (path.startsWith("/public")) {
+      const file = path === "/" ? "/index.html" : path;
+      const dist = join(process.cwd(), `.${file}`);
+      return new Response(Bun.file(dist), { status: 200 });
     }
 
     const file = path === "/" ? "/index.html" : path;

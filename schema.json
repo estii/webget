@@ -250,6 +250,9 @@
         "MacBookPro14",
         "MacBookPro16"
       ]
+    },
+    "template": {
+      "type": "string"
     }
   },
   "additionalProperties": false,
