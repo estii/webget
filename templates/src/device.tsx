@@ -1,4 +1,4 @@
-import "./ios.css";
+import "./device.css";
 
 function CellularIcon() {
   return (
@@ -194,7 +194,7 @@ function TabsIcon() {
   );
 }
 
-export function Phone() {
+export function Device() {
   const { searchParams } = new URL(window.location.href);
   const time = searchParams.get("time") ?? "9:41";
   const url = new URL(searchParams.get("url") ?? "https://webget.com");
@@ -254,20 +254,6 @@ export function Phone() {
         ) : (
           <div className="footer" />
         )}
-      </div>
-      <div className="bezel" />
-    </div>
-  );
-
-  return (
-    <div
-      className={`device ${device}`}
-      style={{
-        backgroundImage: `url(http://localhost:3637/image?path=${bezel})`,
-      }}
-    >
-      <div className="viewport">
-        <div className="swiper" />
       </div>
       <div className="bezel" />
     </div>

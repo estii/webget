@@ -1,8 +1,8 @@
 import "./App.css";
-import { Phone } from "./ios";
+import { Device } from "./device";
 
 function App() {
-  return <Phone />;
+  return <Device />;
 }
 
 export default App;
