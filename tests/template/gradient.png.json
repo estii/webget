@@ -4,5 +4,5 @@
   "deviceScaleFactor": 2,
   "width": 1280,
   "height": 720,
-  "template": "device"
+  "template": "gradient.html"
 }

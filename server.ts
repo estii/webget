@@ -129,87 +129,54 @@ async function updateScreenshot(options: Options, page: Page, config: Config) {
   const type = getOutputType(output);
 
   if (config.template) {
-    const template = await runtime;
-    await template.goto(
-      `${SERVER_URL}/public/templates/${config.template}.html`
-    );
+    const browser = await getBrowser(options);
+    const template = await browser.newPage({
+      deviceScaleFactor: config.template.includes("iPhone15Pro") ? 3 : 2,
+    });
+
+    const url = new URL(`${SERVER_URL}/public/templates/${config.template}`);
+    url.searchParams.set("url", config.url);
+    await template.goto(url.href);
 
     const frame = template.locator("#frame");
-    const frameRect = await frame.boundingBox();
-    if (!frameRect) {
-      throw new Error("No frame element found");
-    }
-    console.log(frameRect);
+    const content = template.locator("#frame .content");
 
+    const frameRect = await frame.boundingBox();
+    const contentRect = await content.boundingBox();
+
+    if (!frameRect || !contentRect) {
+      throw new Error("Invalid template");
+    }
+
+    // make sure we capture the whole frame
     await template.setViewportSize({
       width: frameRect.width,
       height: frameRect.height,
     });
 
-    await page.screenshot({
-      path: temp,
-      type,
-      quality: type === "jpeg" ? config.quality : undefined,
-    });
-
-    const content = template.locator("#frame img");
-    const element = content.first();
-    element.evaluate(
-      (el: HTMLImageElement, temp) =>
-        (el.src = `http://localhost:3637/image?path=${temp}`),
-      temp
-    );
-
-    const image = await template.screenshot({ omitBackground: true });
-    await Bun.write(temp, image);
-  } else if (config.device) {
-    const browser = await getBrowser(options);
-    const template = await browser.newPage({
-      deviceScaleFactor: config.device === "iPhone15Pro" ? 3 : 2,
-    });
-
-    const url = new URL(SERVER_URL);
-    url.searchParams.set("device", config.device);
-    await template.goto(url.href, { waitUntil: "networkidle" });
-
-    // measure the size of the .device element
-    let device = template.locator("#device");
-    const deviceRect = await device.boundingBox();
-    if (!deviceRect) {
-      throw new Error("No bezel element found");
-    }
-
-    await template.setViewportSize({
-      width: deviceRect.width,
-      height: deviceRect.height,
-    });
-
-    const content = template.locator("#device .content");
-    const contentRect = await content.boundingBox();
-    if (!contentRect) {
-      throw new Error("No bezel element found");
-    }
-
+    // set page to the size of the templates content
     await page.setViewportSize({
       width: contentRect.width,
       height: contentRect.height,
     });
 
+    // take screenshot of the page
     await page.screenshot({
       path: temp,
       type,
       quality: type === "jpeg" ? config.quality : undefined,
     });
 
-    url.searchParams.set("url", config.url);
-    url.searchParams.set("path", temp);
-    url.searchParams.set("background", "white");
-    await template.goto(url.href, { waitUntil: "networkidle" });
+    content.evaluate(
+      (el: HTMLImageElement, temp) =>
+        (el.style.backgroundImage = `url(http://localhost:3637/image?path=${temp})`),
+      temp
+    );
 
-    device = template.locator("#device");
-    const image = await device.screenshot({ omitBackground: true });
-    await template.close();
+    const image = await template.screenshot({ omitBackground: true });
     await Bun.write(temp, image);
+
+    await template.close();
   } else {
     await crop.target.screenshot({
       path: temp,
@@ -285,9 +252,7 @@ Bun.serve({
       return new Response(Bun.file(dist), { status: 200 });
     }
 
-    const file = path === "/" ? "/index.html" : path;
-    const dist = `./templates/dist${file}`;
-    return new Response(Bun.file(dist), { status: 200 });
+    return new Response(null, { status: 404 });
   },
   error() {
     return new Response(null, { status: 404 });
