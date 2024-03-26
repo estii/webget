@@ -13,7 +13,7 @@ import type {
   CompositeParams,
   CompositeResult,
 } from "./browser";
-import { getConfig, type Config } from "./config";
+import { getConfig, getWebgetConfig, type Config } from "./config";
 import { PORT, SERVER_URL } from "./constants";
 import { getMime, getOutputType } from "./utils";
 
@@ -78,6 +78,9 @@ async function getScreenshot(options: Options, path: string) {
     forcedColors: config.forcedColors,
   });
 
+  const webgetConfig = await getWebgetConfig(path);
+  await webgetConfig.setup(context, config);
+
   const page = await context.newPage();
   page.setDefaultTimeout(2000);
   page.setDefaultNavigationTimeout(10000);
@@ -131,7 +134,7 @@ async function updateScreenshot(options: Options, page: Page, config: Config) {
   if (config.template) {
     const browser = await getBrowser(options);
     const template = await browser.newPage({
-      deviceScaleFactor: config.template.includes("iPhone15Pro") ? 3 : 2,
+      deviceScaleFactor: 3, //config.template.includes("iPhone15Pro") ? 3 : 2,
     });
 
     const url = new URL(`${SERVER_URL}/public/templates/${config.template}`);
@@ -142,17 +145,25 @@ async function updateScreenshot(options: Options, page: Page, config: Config) {
     const content = template.locator("#frame .content");
 
     const frameRect = await frame.boundingBox();
-    const contentRect = await content.boundingBox();
-
-    if (!frameRect || !contentRect) {
+    if (!frameRect) {
       throw new Error("Invalid template");
     }
 
-    // make sure we capture the whole frame
     await template.setViewportSize({
-      width: frameRect.width,
-      height: frameRect.height,
+      width: config.width,
+      height: config.height,
     });
+
+    // await template.setViewportSize({
+    //   width: frameRect.width,
+    //   height: frameRect.height,
+    // });
+
+    const contentRect = await content.boundingBox();
+    if (!contentRect) {
+      throw new Error("Invalid template");
+    }
+    console.log(contentRect);
 
     // set page to the size of the templates content
     await page.setViewportSize({
@@ -167,7 +178,7 @@ async function updateScreenshot(options: Options, page: Page, config: Config) {
       quality: type === "jpeg" ? config.quality : undefined,
     });
 
-    content.evaluate(
+    await content.evaluate(
       (el: HTMLImageElement, temp) =>
         (el.style.backgroundImage = `url(http://localhost:3637/image?path=${temp})`),
       temp

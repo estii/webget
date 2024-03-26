@@ -5,6 +5,7 @@ import { CropAction } from "./actions/crop";
 import { FillAction } from "./actions/fill";
 import { HoverAction } from "./actions/hover";
 import { WaitAction } from "./actions/wait";
+import type { WebgetConfig } from "./types";
 
 export const Action = z.discriminatedUnion("type", [
   ClickAction,
@@ -51,18 +52,30 @@ export const configSchema = z
 
 export type Config = z.infer<typeof configSchema> & { path: string };
 
-async function getBaseConfig(path: string) {
+async function findFile(path: string, name: string) {
   const dir = dirname(path);
   if (dir === "/") {
     return null;
   }
 
-  path = join(dir, "webget.json");
+  path = join(dir, name);
   if (await Bun.file(path).exists()) {
-    return readConfig(path);
+    return path;
   }
 
-  return getBaseConfig(dir);
+  return findFile(dir, name);
+}
+
+async function getBaseConfig(path: string) {
+  const file = await findFile(path, "webget.json");
+  if (file === null) return null;
+  return readConfig(file);
+}
+
+export async function getWebgetConfig(path: string) {
+  const file = await findFile(path, "webget.ts");
+  if (file === null) return { setup: async () => {} };
+  return import(file).then((module) => module.default as WebgetConfig);
 }
 
 async function readConfig(path: string) {

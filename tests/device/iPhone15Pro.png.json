@@ -1,6 +1,0 @@
-{
-  "$schema": "../../schema.json",
-  "url": "https://estii.com",
-  "deviceScaleFactor": 3,
-  "template": "device.html?device=iPhone15Pro&url=https://estii.com"
-}
