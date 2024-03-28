@@ -16,15 +16,6 @@ export type CompareResult = {
   mcs: number;
 };
 
-export type CompositeParams = {
-  path1: string;
-  path2: string;
-  x: number;
-  y: number;
-};
-
-export type CompositeResult = {};
-
 type SsimInput = {
   data: Uint8ClampedArray;
   width: number;
@@ -307,8 +298,6 @@ function putImage(path: string, body: Uint8Array) {
 }
 
 function compare({ path1, path2 }: CompareParams) {
-  console.log(path1);
-  console.log(path2);
   return Promise.all([loadImage(path1), loadImage(path2)]).then(
     async ([image1, image2]) => {
       const path = getDiffPath(path1);
@@ -318,34 +307,4 @@ function compare({ path1, path2 }: CompareParams) {
   );
 }
 
-function getComposite(
-  image1: HTMLImageElement,
-  image2: HTMLImageElement,
-  x: number,
-  y: number
-) {
-  const canvas = document.createElement("canvas");
-  canvas.width = image1.width;
-  canvas.height = image1.height;
-  const ctx = canvas.getContext("2d");
-  if (ctx === null) {
-    throw new Error("Could not get 2d context");
-  }
-  ctx.drawImage(image1, 0, 0);
-  ctx.drawImage(image2, x, y);
-  const dataUrl = canvas.toDataURL("image/png");
-  return dataUrlToBlob(dataUrl);
-}
-
-function composite({ path1, path2, x, y }: CompositeParams) {
-  return Promise.all([loadImage(path1), loadImage(path2)]).then(
-    async ([image1, image2]) => {
-      const data = getComposite(image1, image2, x, y);
-      await putImage(path2, data);
-      return {};
-    }
-  );
-}
-
 window.compare = compare;
-window.composite = composite;

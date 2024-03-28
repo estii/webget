@@ -1,7 +1,7 @@
 import type { Locator, Page } from "playwright";
 import { z } from "zod";
 
-export const RectCropArea = z.object({
+export const cropRectSchema = z.object({
   type: z.literal("rect"),
   x: z.union([z.number(), z.enum(["left", "center", "right"])]).default(0),
   y: z.union([z.number(), z.enum(["top", "center", "bottom"])]).default(0),
@@ -9,24 +9,24 @@ export const RectCropArea = z.object({
   height: z.optional(z.number()),
 });
 
-export const ElementCropArea = z.object({
+export const cropElementSchema = z.object({
   type: z.literal("element"),
   selector: z.string(),
   padding: z.number().default(0),
 });
 
-export const CropArea = z.discriminatedUnion("type", [
-  RectCropArea,
-  ElementCropArea,
+export const cropAreaSchema = z.discriminatedUnion("type", [
+  cropRectSchema,
+  cropElementSchema,
 ]);
 
-export const CropAction = z.object({
+export const cropActionSchema = z.object({
   type: z.literal("crop"),
   selector: z.optional(z.string()),
-  area: z.optional(CropArea),
+  area: z.optional(cropAreaSchema),
 });
 
-export type CropAction = z.infer<typeof CropAction>;
+export type CropAction = z.infer<typeof cropActionSchema>;
 
 export type CropResult = {
   target: Page | Locator;

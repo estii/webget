@@ -3,29 +3,26 @@
   "properties": {
     "$schema": {
       "type": "string",
-      "default": "https://webget.com/schema.json"
+      "default": "https://webget.com/schema/asset.json"
     },
     "url": {
-      "type": "string",
-      "default": "https://estii.com"
+      "type": "string"
     },
     "deviceScaleFactor": {
       "type": "number",
       "minimum": 1,
-      "default": 2
+      "maximum": 3
     },
     "baseUrl": {
       "type": "string"
     },
     "width": {
       "type": "number",
-      "minimum": 1,
-      "default": 1280
+      "minimum": 1
     },
     "height": {
       "type": "number",
-      "minimum": 1,
-      "default": 720
+      "minimum": 1
     },
     "actions": {
       "type": "array",
@@ -211,16 +208,14 @@
     "quality": {
       "type": "number",
       "minimum": 0,
-      "maximum": 100,
-      "default": 80
+      "maximum": 100
     },
     "reducedMotion": {
       "type": "string",
       "enum": [
         "no-preference",
         "reduce"
-      ],
-      "default": "reduce"
+      ]
     },
     "colorScheme": {
       "type": "string",
@@ -228,33 +223,113 @@
         "no-preference",
         "light",
         "dark"
-      ],
-      "default": "no-preference"
+      ]
     },
     "forcedColors": {
       "type": "string",
       "enum": [
         "none",
         "active"
-      ],
-      "default": "none"
-    },
-    "device": {
-      "type": "string",
-      "enum": [
-        "iMac24",
-        "iMac27",
-        "iPadPro11",
-        "iPadPro129",
-        "iPhone15Pro",
-        "MacBookPro14",
-        "MacBookPro16"
       ]
     },
     "template": {
       "type": "string"
+    },
+    "storageState": {
+      "type": "object",
+      "properties": {
+        "cookies": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "value": {
+                "type": "string"
+              },
+              "domain": {
+                "type": "string"
+              },
+              "path": {
+                "type": "string",
+                "default": "/"
+              },
+              "expires": {
+                "type": "number",
+                "default": 1711588423974
+              },
+              "httpOnly": {
+                "type": "boolean",
+                "default": false
+              },
+              "secure": {
+                "type": "boolean",
+                "default": false
+              },
+              "sameSite": {
+                "type": "string",
+                "enum": [
+                  "Strict",
+                  "Lax",
+                  "None"
+                ],
+                "default": "None"
+              }
+            },
+            "required": [
+              "name",
+              "value",
+              "domain"
+            ],
+            "additionalProperties": false
+          },
+          "default": []
+        },
+        "origins": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "origin": {
+                "type": "string"
+              },
+              "localStorage": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "value": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "value"
+                  ],
+                  "additionalProperties": false
+                },
+                "default": []
+              }
+            },
+            "required": [
+              "origin"
+            ],
+            "additionalProperties": false
+          },
+          "default": []
+        }
+      },
+      "additionalProperties": false
     }
   },
+  "required": [
+    "url"
+  ],
   "additionalProperties": false,
   "description": "Screenshot configuration",
   "$schema": "http://json-schema.org/draft-07/schema#"

@@ -1,11 +1,14 @@
 #! /usr/bin/env bun
 
+import { treaty } from "@elysiajs/eden";
 import { Glob } from "bun";
 import Listr from "listr";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
-import { z } from "zod";
 import { SERVER_URL } from "./constants";
+import type { App, ScreenshotResult } from "./server";
+
+const app = treaty<App>(SERVER_URL);
 
 function getOutput(input: string) {
   return input.replace(".json", "");
@@ -72,6 +75,8 @@ yargs(hideBin(process.argv))
         .describe("diff", "Show browser during capture"),
 
     async ({ filter, workers, headed, diff }) => {
+      await startServer();
+
       const outputs = [
         ...new Glob("**/*.{png,jpg}.json").scanSync({ absolute: true }),
       ]
@@ -94,23 +99,63 @@ yargs(hideBin(process.argv))
       await tasks.run();
     }
   )
+  .command(
+    "start",
+    "Start the server",
+    () => ({}),
+    async () => {
+      await startServer(true);
+    }
+  )
+  .command(
+    "stop",
+    "Stop the server",
+    () => ({}),
+    async () => {
+      await stopServer(true);
+    }
+  )
   .parse();
 
-const ScreenshotResult = z.object({
-  status: z.enum(["created", "updated", "matched", "error"]),
-  error: z.string().optional(),
-});
+async function isServerRunning() {
+  try {
+    const res = await app.health.get();
+    return !res.error;
+  } catch (e) {
+    return false;
+  }
+}
 
-type ScreenshotResult = z.infer<typeof ScreenshotResult>;
+async function startServer(log = false) {
+  const running = await isServerRunning();
+  if (running) {
+    if (log) console.log("Server running");
+  } else {
+    const proc = Bun.spawn(["bun", "--watch", "server.ts"], {
+      cwd: import.meta.dir,
+    });
+    proc.unref();
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    if (log) console.log("Server started");
+  }
+}
+
+async function stopServer(log = false) {
+  const running = await isServerRunning();
+  if (running) {
+    const res = await app.stop.get();
+    if (log) console.log("Server stopped");
+  } else {
+    if (log) console.log("Server not running");
+  }
+}
 
 async function getScreenshot(path: string, headed = false, diff = false) {
-  const res = await fetch(
-    `${SERVER_URL}/screenshot?path=${path}&headed=${headed ? "1" : "0"}&diff=${
-      diff ? "1" : "0"
-    }`
-  );
-  if (res.status !== 200) {
+  const { data, error } = await app.screenshot.get({
+    query: { path, headed, diff },
+  });
+  if (error) {
     return { status: "error" as const, error: "Newtwork error" };
   }
-  return ScreenshotResult.parse(await res.json());
+  return data;
 }

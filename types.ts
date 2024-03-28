@@ -1,6 +1,6 @@
-import type { BrowserContext } from "playwright";
-import type { Config } from "./config";
+import type { Asset } from "./schema";
+export type { Cookie } from "./schema";
 
 export type WebgetConfig = {
-  setup(context: BrowserContext, config: Config): Promise<void>;
+  setup(asset: Asset): Promise<Asset>;
 };

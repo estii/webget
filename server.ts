@@ -1,21 +1,17 @@
+import staticPlugin from "@elysiajs/static";
+import { Elysia, t } from "elysia";
 import os from "node:os";
 import { join } from "node:path";
 import { chromium, type Page } from "playwright";
-import { ZodError } from "zod";
 import { clickAction } from "./actions/click";
 import { cropAction, type CropResult } from "./actions/crop";
 import { fillAction } from "./actions/fill";
 import { hoverAction } from "./actions/hover";
 import { waitAction } from "./actions/wait";
-import type {
-  CompareParams,
-  CompareResult,
-  CompositeParams,
-  CompositeResult,
-} from "./browser";
-import { getConfig, getWebgetConfig, type Config } from "./config";
+import type { CompareParams, CompareResult } from "./browser";
 import { PORT, SERVER_URL } from "./constants";
-import { getMime, getOutputType } from "./utils";
+import { getAsset, type Asset } from "./schema";
+import { getMime } from "./utils";
 
 async function getScript() {
   const output = await Bun.build({
@@ -55,48 +51,40 @@ type Options = {
   diff: boolean;
 };
 
+export type ScreenshotResult = {
+  status: "created" | "updated" | "matched" | "error";
+  error?: string;
+};
+
 async function getScreenshot(options: Options, path: string) {
-  let config: Config;
-  try {
-    config = await getConfig(path);
-  } catch (error) {
-    if (error instanceof ZodError) {
-      const [first] = error.issues;
-      if (first) {
-        return Response.json({ status: "error", error: first.message });
-      }
-    }
-    return Response.json({ status: "error", error: String(error) });
-  }
+  const asset = await getAsset(path);
+  console.log(asset);
+
   const browser = await getBrowser(options);
   const context = await browser.newContext({
-    viewport: { width: config.width, height: config.height },
-    baseURL: config.baseUrl,
-    deviceScaleFactor: config.deviceScaleFactor,
-    colorScheme: config.colorScheme,
-    reducedMotion: config.reducedMotion,
-    forcedColors: config.forcedColors,
+    viewport: { width: asset.width ?? 1280, height: asset.height ?? 720 },
+    baseURL: asset.baseUrl,
+    deviceScaleFactor: asset.deviceScaleFactor,
+    colorScheme: asset.colorScheme,
+    reducedMotion: asset.reducedMotion,
+    forcedColors: asset.forcedColors,
+    storageState: asset.storageState,
   });
 
-  const webgetConfig = await getWebgetConfig(path);
-  await webgetConfig.setup(context, config);
-
   const page = await context.newPage();
-  page.setDefaultTimeout(2000);
+  page.setDefaultTimeout(5000);
   page.setDefaultNavigationTimeout(10000);
 
-  const result = await getScreenshotResult(options, page, config);
-
-  await page.close();
+  const result = await getScreenshotResult(options, page, asset);
   await context.close();
-  return Response.json(result);
+  return result;
 }
 
 async function getScreenshotResult(
   options: Options,
   page: Page,
-  config: Config
-) {
+  config: Asset
+): Promise<ScreenshotResult> {
   try {
     return await updateScreenshot(options, page, config);
   } catch (error) {
@@ -107,9 +95,13 @@ async function getScreenshotResult(
   }
 }
 
-async function updateScreenshot(options: Options, page: Page, config: Config) {
-  const output = config.path;
-  const temp = join(os.tmpdir(), config.path);
+async function updateScreenshot(
+  options: Options,
+  page: Page,
+  config: Asset
+): Promise<ScreenshotResult> {
+  const output = config.output;
+  const temp = join(os.tmpdir(), config.output);
   let crop: CropResult = { target: page };
 
   await page.goto(config.url);
@@ -128,8 +120,7 @@ async function updateScreenshot(options: Options, page: Page, config: Config) {
     }
   }
 
-  const exists = await Bun.file(output).exists();
-  const type = getOutputType(output);
+  const exists = await Bun.file(config.output).exists();
 
   if (config.template) {
     const browser = await getBrowser(options);
@@ -150,8 +141,8 @@ async function updateScreenshot(options: Options, page: Page, config: Config) {
     }
 
     await template.setViewportSize({
-      width: config.width,
-      height: config.height,
+      width: config.width ?? 1280,
+      height: config.height ?? 720,
     });
 
     // await template.setViewportSize({
@@ -163,7 +154,6 @@ async function updateScreenshot(options: Options, page: Page, config: Config) {
     if (!contentRect) {
       throw new Error("Invalid template");
     }
-    console.log(contentRect);
 
     // set page to the size of the templates content
     await page.setViewportSize({
@@ -174,8 +164,8 @@ async function updateScreenshot(options: Options, page: Page, config: Config) {
     // take screenshot of the page
     await page.screenshot({
       path: temp,
-      type,
-      quality: type === "jpeg" ? config.quality : undefined,
+      type: config.type,
+      quality: config.type === "jpeg" ? config.quality : undefined,
     });
 
     await content.evaluate(
@@ -191,8 +181,8 @@ async function updateScreenshot(options: Options, page: Page, config: Config) {
   } else {
     await crop.target.screenshot({
       path: temp,
-      type,
-      quality: type === "jpeg" ? config.quality : undefined,
+      type: config.type,
+      quality: config.type === "jpeg" ? config.quality : undefined,
       clip: crop.rect,
     });
   }
@@ -218,71 +208,64 @@ async function updateScreenshot(options: Options, page: Page, config: Config) {
   return { status: "created" };
 }
 
-Bun.serve({
-  port: PORT,
-  async fetch(req) {
-    const url = new URL(req.url);
-    const path = url.pathname;
-
-    if (path === "/screenshot") {
-      const path = url.searchParams.get("path");
-      const headless = url.searchParams.get("headed") !== "1";
-      const diff = url.searchParams.get("diff") === "1";
-      if (!path) {
-        console.log("No path");
-        return new Response(null, { status: 400 });
-      }
-      const result = await getScreenshot({ headless, diff }, path);
-      return result;
+const app = new Elysia()
+  .get(
+    "/screenshot",
+    async ({ query: { path, headed, diff } }) => {
+      return getScreenshot({ headless: !headed, diff }, path);
+    },
+    {
+      query: t.Object({
+        path: t.String(),
+        headed: t.BooleanString(),
+        diff: t.BooleanString(),
+      }),
     }
-
-    if (path === "/image" && req.method === "GET") {
-      const path = url.searchParams.get("path");
-      if (!path) {
-        return new Response(null, { status: 400 });
-      }
+  )
+  .get(
+    "/image",
+    async ({ query: { path } }) => {
       const mime = getMime(path);
       const file = Bun.file(path);
       return new Response(file, {
         headers: { "Content-Type": mime, "Cache-Control": "no-store" },
       });
+    },
+    {
+      query: t.Object({
+        path: t.String(),
+      }),
     }
-
-    if (path === "/image" && req.method === "POST") {
-      const path = url.searchParams.get("path");
-      if (!path) {
-        return new Response(null, { status: 400 });
-      }
-      await Bun.write(path, await req.arrayBuffer());
+  )
+  .post(
+    "/image",
+    async ({ query: { path }, body }) => {
+      await Bun.write(path, body);
       return new Response(null, { status: 200 });
+    },
+    {
+      query: t.Object({
+        path: t.String(),
+      }),
+      body: t.Uint8Array(),
     }
+  )
+  .get("/health", () => "OK")
+  .get("/stop", async () => {
+    await app.stop();
+  })
+  .use(staticPlugin())
+  .listen(PORT);
 
-    if (path.startsWith("/public")) {
-      const file = path === "/" ? "/index.html" : path;
-      const dist = join(process.cwd(), `.${file}`);
-      return new Response(Bun.file(dist), { status: 200 });
-    }
-
-    return new Response(null, { status: 404 });
-  },
-  error() {
-    return new Response(null, { status: 404 });
-  },
-});
+export type App = typeof app;
 
 async function compare(params: CompareParams) {
   const page = await runtime;
   return page.evaluate((params) => window.compare(params), params);
 }
 
-async function composite(params: CompositeParams) {
-  const page = await runtime;
-  return page.evaluate((params) => window.composite(params), params);
-}
-
 declare global {
   interface Window {
     compare: (params: CompareParams) => Promise<CompareResult>;
-    composite: (params: CompositeParams) => Promise<CompositeResult>;
   }
 }
