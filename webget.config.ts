@@ -1,4 +1,4 @@
-import type { WebgetConfig } from "./types";
+import type { WebgetConfig } from "./src/types";
 
 const config: WebgetConfig = {
   async setup(asset) {

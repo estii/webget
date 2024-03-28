@@ -12,7 +12,7 @@
     "typescript": "^5.2.0"
   },
   "bin": {
-    "wg": "./index.ts"
+    "wg": "./src/cli.ts"
   },
   "dependencies": {
     "@elysiajs/eden": "^1.0.7",
@@ -26,8 +26,8 @@
     "zod-to-json-schema": "^3.22.4"
   },
   "scripts": {
-    "clean": "rm tests/**/*.{jpg,png}",
-    "schema": "bun scripts/schema.ts",
-    "server": "bun --watch server.ts"
+    "clean": "bun src/scripts/clean.ts",
+    "schema": "bun src/scripts/schema.ts",
+    "server": "bun --watch src/server.ts"
   }
 }

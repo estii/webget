@@ -3,10 +3,12 @@
 import { treaty } from "@elysiajs/eden";
 import { Glob } from "bun";
 import Listr from "listr";
+import { dirname } from "node:path";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 import { SERVER_URL } from "./constants";
-import type { App, ScreenshotResult } from "./server";
+import type { ScreenshotResult } from "./screenshot";
+import type { App } from "./server";
 
 const app = treaty<App>(SERVER_URL);
 
@@ -131,13 +133,13 @@ async function startServer(log = false) {
   if (running) {
     if (log) console.log("Server running");
   } else {
-    const proc = Bun.spawn(["bun", "--watch", "server.ts"], {
-      cwd: import.meta.dir,
+    const proc = Bun.spawn(["bun", "--watch", "src/server.ts"], {
+      cwd: dirname(import.meta.dir),
       stdout: "ignore",
       stderr: "ignore",
     });
     proc.unref();
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 200));
     if (log) console.log("Server started");
   }
 }
@@ -145,7 +147,7 @@ async function startServer(log = false) {
 async function stopServer(log = false) {
   const running = await isServerRunning();
   if (running) {
-    const res = await app.stop.get();
+    await app.stop.get();
     if (log) console.log("Server stopped");
   } else {
     if (log) console.log("Server not running");

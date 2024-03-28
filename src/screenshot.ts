@@ -1,70 +1,14 @@
-import staticPlugin from "@elysiajs/static";
-import { Elysia, t } from "elysia";
 import os from "node:os";
 import { join } from "node:path";
-import { chromium, type Browser, type Page } from "playwright";
 import { clickAction } from "./actions/click";
 import { cropAction, type CropResult } from "./actions/crop";
 import { fillAction } from "./actions/fill";
 import { hoverAction } from "./actions/hover";
 import { waitAction } from "./actions/wait";
-import type { CompareParams, CompareResult } from "./browser";
-import { PORT, SERVER_URL } from "./constants";
+import { getBrowser } from "./browser";
+import { SERVER_URL } from "./constants";
+import { compare } from "./runtime";
 import { getAsset, type Asset } from "./schema";
-import { getMime } from "./utils";
-
-async function getScript() {
-  const output = await Bun.build({
-    entrypoints: ["browser.ts"],
-    target: "browser",
-  });
-
-  const [script] = output.outputs;
-  if (script) return script.text();
-  console.log(output.logs);
-  throw new Error("No script found");
-}
-
-const channel = "chrome";
-
-let headedBrowser: Promise<Browser> | null = null;
-function getHeadedBrowser() {
-  if (headedBrowser === null) {
-    headedBrowser = chromium.launch({ headless: false, channel });
-  }
-  return headedBrowser;
-}
-
-let headlessBrowser: Promise<Browser> | null = null;
-function getHeadlessBrowser() {
-  if (headlessBrowser === null) {
-    headlessBrowser = chromium.launch({ headless: true, channel });
-  }
-  return headlessBrowser;
-}
-
-let runtime: Promise<Page> | null = null;
-function getRuntime() {
-  if (runtime === null) {
-    runtime = getHeadlessBrowser().then(async (browser) => {
-      const page = await browser.newPage();
-      const script = await getScript();
-      await page.addInitScript({ content: script });
-      await page.goto(SERVER_URL);
-      page.on("console", (msg) => console.log(msg.type(), msg.text()));
-      page.on("pageerror", (msg) => console.log("runtime", msg));
-      return page;
-    });
-  }
-  return runtime;
-}
-
-async function getBrowser(options: Options) {
-  if (options.headless) {
-    return getHeadlessBrowser();
-  }
-  return getHeadedBrowser();
-}
 
 function getErrorMessage(error: unknown) {
   if (error instanceof Error) {
@@ -84,7 +28,7 @@ export type ScreenshotResult = {
 };
 
 async function getAssetContext(options: Options, asset: Asset) {
-  const browser = await getBrowser(options);
+  const browser = await getBrowser(options.headless);
   const context = await browser.newContext({
     viewport: { width: asset.width ?? 1280, height: asset.height ?? 720 },
     baseURL: asset.baseUrl,
@@ -98,7 +42,7 @@ async function getAssetContext(options: Options, asset: Asset) {
   return context;
 }
 
-async function updateOrError(
+export async function updateOrError(
   options: Options,
   path: string
 ): Promise<ScreenshotResult> {
@@ -142,7 +86,7 @@ async function update(
   const exists = await Bun.file(asset.output).exists();
 
   if (asset.template) {
-    const browser = await getBrowser(options);
+    const browser = await getBrowser(options.headless);
     const template = await browser.newPage({
       deviceScaleFactor: 3,
     });
@@ -227,77 +171,3 @@ async function update(
   return { status: "created" };
 }
 
-const app = new Elysia()
-  .onResponse(async ({ path }) => {
-    if (path === "/stop") {
-      console.log("Shutting down...");
-      await new Promise((resolve) => setTimeout(resolve, 100));
-      process.exit(0);
-    }
-  })
-  .get("/stop", async () => {
-    if (headedBrowser) {
-      await headedBrowser.then((browser) => browser.close());
-    }
-    if (headlessBrowser) {
-      await headlessBrowser.then((browser) => browser.close());
-    }
-  })
-  .get(
-    "/screenshot",
-    async ({ query: { path, headed, diff } }) => {
-      return updateOrError({ headless: !headed, diff }, path);
-    },
-    {
-      query: t.Object({
-        path: t.String(),
-        headed: t.BooleanString(),
-        diff: t.BooleanString(),
-      }),
-    }
-  )
-  .get(
-    "/image",
-    async ({ query: { path } }) => {
-      const mime = getMime(path);
-      const file = Bun.file(path);
-      return new Response(file, {
-        headers: { "Content-Type": mime, "Cache-Control": "no-store" },
-      });
-    },
-    {
-      query: t.Object({
-        path: t.String(),
-      }),
-    }
-  )
-  .post(
-    "/image",
-    async ({ query: { path }, body }) => {
-      await Bun.write(path, body);
-      return new Response(null, { status: 200 });
-    },
-    {
-      query: t.Object({
-        path: t.String(),
-      }),
-      body: t.Uint8Array(),
-    }
-  )
-  .get("/health", () => "OK")
-
-  .use(staticPlugin())
-  .listen(PORT);
-
-export type App = typeof app;
-
-async function compare(params: CompareParams) {
-  const page = await getRuntime();
-  return page.evaluate((params) => window.compare(params), params);
-}
-
-declare global {
-  interface Window {
-    compare: (params: CompareParams) => Promise<CompareResult>;
-  }
-}
