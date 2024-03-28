@@ -133,6 +133,8 @@ async function startServer(log = false) {
   } else {
     const proc = Bun.spawn(["bun", "--watch", "server.ts"], {
       cwd: import.meta.dir,
+      stdout: "ignore",
+      stderr: "ignore",
     });
     proc.unref();
     await new Promise((resolve) => setTimeout(resolve, 100));

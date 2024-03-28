@@ -80,9 +80,23 @@ async function findFile(path: string, name: string) {
   return findFile(dir, name);
 }
 
+function formatIssue(issue?: z.ZodIssue) {
+  // console.log(issue);
+  switch (issue?.code) {
+    case "invalid_type":
+      if (issue.received === "undefined") {
+        return `asset.${issue.path.join(".")} is required`;
+      }
+      return `asset.${issue.path.join(".")} expected ${
+        issue.expected
+      } but got ${issue.received}`;
+    default:
+      return "asset not valid";
+  }
+}
+
 async function getConfig(path: string): Promise<WebgetConfig> {
   const file = await findFile(path, "webget.config.ts");
-  console.log(file);
   if (file === null) return { setup: async (config: Asset) => config };
   return import(file).then((module) => module.default as WebgetConfig);
 }
@@ -92,8 +106,7 @@ async function readAsset(path: string) {
   if (result.success) {
     return result.data;
   }
-  const [first] = result.error.issues;
-  throw new Error(first?.message ?? "Unknown error");
+  throw new Error(formatIssue(result.error.issues[0]));
 }
 
 function getType(output: string) {

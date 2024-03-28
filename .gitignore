@@ -1,4 +1,4 @@
 node_modules
-tests/*.png
-tests/*.jpg
+tests/**/*.png
+tests/**/*.jpg
 /dist
