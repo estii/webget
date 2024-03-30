@@ -1,4 +1,5 @@
 node_modules
 tests/**/*.png
 tests/**/*.jpg
-/dist
+.DS_Store
+/bin

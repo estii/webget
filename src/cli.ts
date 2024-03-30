@@ -1,16 +1,13 @@
-#! /usr/bin/env bun
-
 import { treaty } from "@elysiajs/eden";
-import { Glob } from "bun";
-import Listr from "listr";
-import { dirname } from "node:path";
+import { Listr } from "listr2";
+import { existsSync } from "node:fs";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 import { SERVER_URL } from "./constants";
 import type { ScreenshotResult } from "./screenshot";
-import type { App } from "./server";
+import { runServer, type App } from "./server";
 
-const app = treaty<App>(SERVER_URL);
+const daemon = treaty<App>(SERVER_URL);
 
 function getOutput(input: string) {
   return input.replace(".json", "");
@@ -80,7 +77,7 @@ yargs(hideBin(process.argv))
       await startServer();
 
       const outputs = [
-        ...new Glob("**/*.{png,jpg}.json").scanSync({ absolute: true }),
+        ...new Bun.Glob("**/*.{png,jpg}.json").scanSync({ absolute: true }),
       ]
         .filter((input) => !filter || input.includes(filter))
         .map(getOutput);
@@ -94,6 +91,7 @@ yargs(hideBin(process.argv))
             const result = await getScreenshot(output, headed, diff);
             task.title = getTaskTitle(output, result);
           },
+          exitOnError: false,
         })),
         { concurrent: workers }
       );
@@ -117,15 +115,33 @@ yargs(hideBin(process.argv))
       await stopServer(true);
     }
   )
+  .command(
+    "server",
+    "Run the server",
+    () => ({}),
+    async () => {
+      await stopServer();
+      const path = findPath();
+      process.chdir(path);
+      runServer();
+    }
+  )
   .parse();
 
 async function isServerRunning() {
   try {
-    const res = await app.health.get();
+    const res = await daemon.health.get();
     return !res.error;
   } catch (e) {
     return false;
   }
+}
+
+function findPath() {
+  if (existsSync("./node_modules/webget")) {
+    return "./node_modules/webget";
+  }
+  return "./";
 }
 
 async function startServer(log = false) {
@@ -133,8 +149,9 @@ async function startServer(log = false) {
   if (running) {
     if (log) console.log("Server running");
   } else {
-    const proc = Bun.spawn(["bun", "--watch", "src/server.ts"], {
-      cwd: dirname(import.meta.dir),
+    const path = findPath();
+    const proc = Bun.spawn([`${path}/bin/wg`, "server"], {
+      cwd: path,
       stdout: "ignore",
       stderr: "ignore",
     });
@@ -147,7 +164,7 @@ async function startServer(log = false) {
 async function stopServer(log = false) {
   const running = await isServerRunning();
   if (running) {
-    await app.stop.get();
+    await daemon.stop.get();
     if (log) console.log("Server stopped");
   } else {
     if (log) console.log("Server not running");
@@ -155,11 +172,15 @@ async function stopServer(log = false) {
 }
 
 async function getScreenshot(path: string, headed = false, diff = false) {
-  const { data, error } = await app.screenshot.get({
+  const { data, error } = await daemon.screenshot.get({
     query: { path, headed, diff },
   });
   if (error) {
     return { status: "error" as const, error: "Newtwork error" };
+  }
+  if (data.error) {
+    const relative = getRelative(path + ".json");
+    throw new Error(`${relative} ${data.error}`);
   }
   return data;
 }

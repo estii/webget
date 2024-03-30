@@ -1,0 +1,14 @@
+<!doctype html>
+<html>
+  <body style="margin: 0px">
+    <div id="bounds" style="display: inline-block">
+      <img style="box-sizing: border-box" id="content" />
+    </div>
+  </body>
+  <script>
+    const url = new URL(window.location.href);
+    const img = document.getElementById("content");
+    img.src = url.searchParams.get("src");
+    img.style.border = url.searchParams.get("border") ?? "none";
+  </script>
+</html>

@@ -95,10 +95,13 @@ function formatIssue(issue?: z.ZodIssue) {
   }
 }
 
+let version = 0;
+
 async function getConfig(path: string): Promise<WebgetConfig> {
   const file = await findFile(path, "webget.config.ts");
-  if (file === null) return { setup: async (config: Asset) => config };
-  return import(file).then((module) => module.default as WebgetConfig);
+  if (file === null) return { setup: async (asset: Asset) => asset };
+  const uncached = `${file}?cache=${version++}`;
+  return import(uncached).then((module) => module.default as WebgetConfig);
 }
 
 async function readAsset(path: string) {

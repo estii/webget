@@ -63,7 +63,7 @@ async function update(
   const page = await context.newPage();
   page.setDefaultTimeout(5000);
   page.setDefaultNavigationTimeout(10000);
-  
+
   const temp = join(os.tmpdir(), asset.output);
   let crop: CropResult = { target: page };
 
@@ -88,40 +88,7 @@ async function update(
   if (asset.template) {
     const browser = await getBrowser(options.headless);
     const template = await browser.newPage({
-      deviceScaleFactor: 3,
-    });
-
-    const url = new URL(`${SERVER_URL}/public/templates/${asset.template}`);
-    url.searchParams.set("url", asset.url);
-    await template.goto(url.href);
-
-    const frame = template.locator("#frame");
-    const content = template.locator("#frame .content");
-
-    const frameRect = await frame.boundingBox();
-    if (!frameRect) {
-      throw new Error("Invalid template");
-    }
-
-    await template.setViewportSize({
-      width: asset.width ?? 1280,
-      height: asset.height ?? 720,
-    });
-
-    // await template.setViewportSize({
-    //   width: frameRect.width,
-    //   height: frameRect.height,
-    // });
-
-    const contentRect = await content.boundingBox();
-    if (!contentRect) {
-      throw new Error("Invalid template");
-    }
-
-    // set page to the size of the templates content
-    await page.setViewportSize({
-      width: contentRect.width,
-      height: contentRect.height,
+      deviceScaleFactor: asset.deviceScaleFactor,
     });
 
     // take screenshot of the page
@@ -131,11 +98,41 @@ async function update(
       quality: asset.type === "jpeg" ? asset.quality : undefined,
     });
 
-    await content.evaluate(
-      (el: HTMLImageElement, temp) =>
-        (el.style.backgroundImage = `url(http://localhost:3637/image?path=${temp})`),
-      temp
-    );
+    const url = new URL(`${SERVER_URL}/public/templates/${asset.template}`);
+    const src = `http://localhost:3637/image?path=${temp}`;
+    url.searchParams.set("url", asset.url);
+    url.searchParams.set("src", src);
+    await template.goto(url.href);
+
+    const bounds = await template.locator("#bounds").boundingBox();
+    if (bounds) {
+      console.log(bounds);
+      await template.setViewportSize({
+        width: bounds.width,
+        height: bounds.height,
+      });
+    }
+
+    // await template.setViewportSize({
+    //   width: asset.width ?? 1280,
+    //   height: asset.height ?? 720,
+    // });
+
+    // await template.setViewportSize({
+    //   width: bounds.width,
+    //   height: bounds.height,
+    // });
+
+    // const contentRect = await content.boundingBox();
+    // if (!contentRect) {
+    //   throw new Error("Invalid template");
+    // }
+
+    // set page to the size of the templates content
+    // await page.setViewportSize({
+    //   width: contentRect.width,
+    //   height: contentRect.height,
+    // });
 
     const image = await template.screenshot({ omitBackground: true });
     await Bun.write(temp, image);
@@ -170,4 +167,3 @@ async function update(
 
   return { status: "created" };
 }
-
