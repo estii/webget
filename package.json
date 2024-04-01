@@ -1,11 +1,27 @@
 {
   "name": "webget",
   "version": "0.1.0",
+  "description": "Automated screenshots for your docs",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dpeek/webget.git"
+  },
+  "bugs": {
+    "url": "https://github.com/dpeek/webget/issues"
+  },
+  "homepage": "https://github.com/dpeek/webget",
+  "keywords": [
+    "playwright",
+    "screenshot",
+    "automation",
+    "documentation",
+    "webget"
+  ],
   "type": "module",
   "module": "src/index.js",
   "types": "src/index.d.ts",
   "bin": {
-    "wg": "./bin/wg"
+    "webget": "./bin/webget"
   },
   "dependencies": {
     "playwright": "^1.42.0"
@@ -28,7 +44,7 @@
     "zod-to-ts": "^1.2.0"
   },
   "files": [
-    "bin/wg",
+    "bin/webget",
     "src/index.js",
     "src/index.d.ts",
     "public/"
@@ -39,8 +55,8 @@
     "schema": "bun src/scripts/schema.ts",
     "types": "bun src/scripts/types.ts",
     "dev": "bun --watch src/dev.ts",
-    "wg": "bun src/cli.ts",
-    "build": "bun build --compile --external electron --sourcemap ./src/cli.ts --outfile wg && mkdir -p bin && mv src/wg bin/wg",
+    "webget": "bun src/cli.ts",
+    "cli": "bun build --compile --external electron --sourcemap ./src/cli.ts --outfile webget && mkdir -p bin && mv src/webget bin/webget",
     "pack": "npm pack --pack-destination ../tester"
   }
 }

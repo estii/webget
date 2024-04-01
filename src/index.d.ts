@@ -30,22 +30,11 @@ declare module "webget" {
       | {
           type: "crop";
           selector?: string | undefined;
-          area?:
-            | (
-                | {
-                    type: "rect";
-                    x?: number | ("left" | "center" | "right");
-                    y?: number | ("top" | "center" | "bottom");
-                    width?: number | undefined;
-                    height?: number | undefined;
-                  }
-                | {
-                    type: "element";
-                    selector: string;
-                    padding?: number;
-                  }
-              )
-            | undefined;
+          x?: number;
+          y?: number;
+          width?: number;
+          height?: number;
+          padding?: number | undefined;
         }
     )[];
     quality?: number | undefined;

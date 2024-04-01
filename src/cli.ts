@@ -54,7 +54,7 @@ function getTaskTitle(path: string, result?: ScreenshotResult) {
 }
 
 yargs(hideBin(process.argv))
-  .scriptName("wg")
+  .scriptName("webget")
   .command(
     "update",
     "Update screenshots in current directory",
@@ -150,7 +150,7 @@ async function startServer(log = false) {
     if (log) console.log("Server running");
   } else {
     const path = findPath();
-    const proc = Bun.spawn([`${path}/bin/wg`, "server"], {
+    const proc = Bun.spawn([`${path}/bin/webget`, "server"], {
       cwd: path,
       stdout: "ignore",
       stderr: "ignore",

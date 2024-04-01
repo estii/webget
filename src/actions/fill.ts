@@ -1,12 +1,14 @@
 import type { Page } from "playwright";
 import { z } from "zod";
 
-export const fillActionSchema = z.object({
-  type: z.literal("fill"),
-  selector: z.string(),
-  frame: z.string().optional(),
-  text: z.string(),
-});
+export const fillActionSchema = z
+  .object({
+    type: z.literal("fill"),
+    selector: z.string(),
+    frame: z.string().optional(),
+    text: z.string(),
+  })
+  .strict();
 
 export type FillAction = z.infer<typeof fillActionSchema>;
 

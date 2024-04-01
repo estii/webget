@@ -1,0 +1,39 @@
+<!doctype html>
+<html>
+  <head>
+    <style>
+      body {
+        margin: 0px;
+      }
+      #bounds {
+        width: 1280px;
+        height: 720px;
+        background-color: #737373;
+        overflow: hidden;
+        position: relative;
+      }
+      #content {
+        position: absolute;
+        overflow: hidden;
+        top: 60px;
+        left: 60px;
+        border-radius: 40px;
+        width: 1280px;
+        height: 720px;
+        box-shadow: 0px 0px 40px 0px rgba(0, 0, 0, 0.4);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="bounds">
+      <img id="content" />
+    </div>
+  </body>
+  <script>
+    const url = new URL(window.location.href);
+    const img = document.getElementById("content");
+    img.src = url.searchParams.get("src");
+    const overlay = document.getElementById("overlay");
+    overlay.style.border = url.searchParams.get("border") ?? "none";
+  </script>
+</html>

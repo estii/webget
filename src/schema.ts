@@ -4,7 +4,8 @@ import { clickActionSchema } from "./actions/click";
 import { cropActionSchema } from "./actions/crop";
 import { fillActionSchema } from "./actions/fill";
 import { hoverActionSchema } from "./actions/hover";
-import { WaitAction as waitActionSchema } from "./actions/wait";
+import { scrollActionSchema } from "./actions/scroll";
+import { waitActionSchema } from "./actions/wait";
 
 export const actionSchema = z.discriminatedUnion("type", [
   clickActionSchema,
@@ -12,6 +13,7 @@ export const actionSchema = z.discriminatedUnion("type", [
   fillActionSchema,
   waitActionSchema,
   cropActionSchema,
+  scrollActionSchema,
 ]);
 
 export type Action = z.infer<typeof actionSchema>;
@@ -81,7 +83,7 @@ async function findFile(path: string, name: string) {
 }
 
 function formatIssue(issue?: z.ZodIssue) {
-  // console.log(issue);
+  console.log(issue);
   switch (issue?.code) {
     case "invalid_type":
       if (issue.received === "undefined") {
@@ -90,6 +92,8 @@ function formatIssue(issue?: z.ZodIssue) {
       return `asset.${issue.path.join(".")} expected ${
         issue.expected
       } but got ${issue.received}`;
+    case "unrecognized_keys":
+      return `unexpected key ${issue.keys.join(".")}`;
     default:
       return "asset not valid";
   }

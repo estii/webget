@@ -4,13 +4,9 @@
   "actions": [
     {
       "type": "crop",
-      "area": {
-        "type": "rect",
-        "x": "left",
-        "y": "bottom",
-        "width": 400,
-        "height": 300
-      }
+      "y": 1,
+      "width": 400,
+      "height": 300
     }
   ]
 }

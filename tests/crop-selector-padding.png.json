@@ -8,11 +8,8 @@
     },
     {
       "type": "crop",
-      "area": {
-        "type": "element",
-        "selector": "a[data-component=Button][href='https://www.abc.net.au/news']",
-        "padding": 10
-      }
+      "selector": "a[data-component=Button][href='https://www.abc.net.au/news']",
+      "padding": 10
     }
   ]
 }

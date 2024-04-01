@@ -1,9 +1,10 @@
 import os from "node:os";
 import { join } from "node:path";
 import { clickAction } from "./actions/click";
-import { cropAction, type CropResult } from "./actions/crop";
+import { cropAction } from "./actions/crop";
 import { fillAction } from "./actions/fill";
 import { hoverAction } from "./actions/hover";
+import { scrollAction } from "./actions/scroll";
 import { waitAction } from "./actions/wait";
 import { getBrowser } from "./browser";
 import { SERVER_URL } from "./constants";
@@ -65,9 +66,17 @@ async function update(
   page.setDefaultNavigationTimeout(10000);
 
   const temp = join(os.tmpdir(), asset.output);
-  let crop: CropResult = { target: page };
+  await page.goto(asset.url, { waitUntil: "networkidle" });
 
-  await page.goto(asset.url);
+  let crop = await cropAction(page, {
+    type: "crop",
+    x: 0,
+    y: 0,
+    width: 1,
+    height: 1,
+    padding: 0,
+    fullPage: false,
+  });
 
   for (const action of asset.actions) {
     if (action.type === "click") {
@@ -80,6 +89,8 @@ async function update(
       await fillAction(page, action);
     } else if (action.type === "hover") {
       await hoverAction(page, action);
+    } else if (action.type === "scroll") {
+      await scrollAction(page, action);
     }
   }
 
@@ -96,6 +107,8 @@ async function update(
       path: temp,
       type: asset.type,
       quality: asset.type === "jpeg" ? asset.quality : undefined,
+      clip: crop.rect,
+      fullPage: crop.fullPage,
     });
 
     const url = new URL(`${SERVER_URL}/public/templates/${asset.template}`);
@@ -106,7 +119,6 @@ async function update(
 
     const bounds = await template.locator("#bounds").boundingBox();
     if (bounds) {
-      console.log(bounds);
       await template.setViewportSize({
         width: bounds.width,
         height: bounds.height,
@@ -139,7 +151,7 @@ async function update(
 
     await template.close();
   } else {
-    await crop.target.screenshot({
+    await page.screenshot({
       path: temp,
       type: asset.type,
       quality: asset.type === "jpeg" ? asset.quality : undefined,

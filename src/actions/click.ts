@@ -1,11 +1,13 @@
 import type { Frame, Page } from "playwright";
 import { z } from "zod";
 
-export const clickActionSchema = z.object({
-  type: z.literal("click"),
-  selector: z.string(),
-  frame: z.string().optional(),
-});
+export const clickActionSchema = z
+  .object({
+    type: z.literal("click"),
+    selector: z.string(),
+    frame: z.string().optional(),
+  })
+  .strict();
 
 export type ClickAction = z.infer<typeof clickActionSchema>;
 
