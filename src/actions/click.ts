@@ -27,4 +27,7 @@ export async function clickAction(page: Page, action: ClickAction) {
   } catch (error) {
     throw new Error(`selector "${action.selector}" not found`);
   }
+
+  // move mouse out of the way
+  await page.mouse.move(0, 0);
 }

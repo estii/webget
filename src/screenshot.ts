@@ -108,7 +108,7 @@ async function update(
       type: asset.type,
       quality: asset.type === "jpeg" ? asset.quality : undefined,
       clip: crop.rect,
-      fullPage: crop.fullPage,
+      animations: "disabled",
     });
 
     const url = new URL(`${SERVER_URL}/public/templates/${asset.template}`);
@@ -156,6 +156,7 @@ async function update(
       type: asset.type,
       quality: asset.type === "jpeg" ? asset.quality : undefined,
       clip: crop.rect,
+      animations: "disabled",
     });
   }
 

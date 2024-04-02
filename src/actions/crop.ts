@@ -49,30 +49,26 @@ export async function cropAction(
     throw new Error(`selector "${action.selector}" not found`);
   }
 
-  // let size = { x: 0, y: 0, width: pageSize.width, height: pageSize.height };
-  // if (action.selector) {
-  //   // target = page.locator(action.selector);
-  //   const bounds = await target.boundingBox();
-  //   if (!bounds) {
-  //     throw new Error(`selector "${action.selector}" not found`);
-  //   }
-  //   size = bounds;
-  // }
+  let { x, y, width, height, padding } = action;
 
-  const width = action.width > 1 ? action.width : size.width * action.width;
-  const height =
-    action.height > 1 ? action.height : size.height * action.height;
-  const x = action.x < 1 ? (size.width - width) * action.x : action.x;
-  const y = action.y < 1 ? (size.height - height) * action.y : action.y;
-  const rect = {
-    x: size.x + x - action.padding,
-    y: size.y + y - action.padding,
-    width: width + action.padding * 2,
-    height: height + action.padding * 2,
-  };
-  // console.log(size);
+  width = width > 1 ? width : width * size.width;
+  height = height > 1 ? height : height * size.height;
+
+  x = x > 1 ? x : x * (size.width - width);
+  y = y > 1 ? y : y * (size.height - height);
+
+  x += size.x;
+  y += size.y;
+
+  x -= padding;
+  y -= padding;
+
+  width += padding * 2;
+  height += padding * 2;
+
+  const rect = { x, y, width, height };
   // console.log(action);
+  // console.log(size);
   // console.log(rect);
-
   return { target, rect, fullPage: action.fullPage };
 }
