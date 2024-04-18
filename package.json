@@ -50,6 +50,7 @@
     "public/"
   ],
   "scripts": {
+    "vercel-build": "next build",
     "postinstall": "playwright install",
     "clean": "bun src/scripts/clean.ts",
     "schema": "bun src/scripts/schema.ts",
