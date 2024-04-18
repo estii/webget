@@ -90,33 +90,34 @@ The `setup` hook is called before each image is generated, and allows you to mod
 
 Top level properties:
 
-````
+```jsonc
 {
   // the url to open in the browser
   "url": "https://usewebget.com",
 
   // the number of screen pixels per html pixel
-  deviceScaleFactor: 2,
+  "deviceScaleFactor": 2,
 
   // a relative "url" will use this as a base url
-  baseUrl: "https://usewebget.com",
+  "baseUrl": "https://usewebget.com",
 
   // the width and height of the browser, defaults to 1280x720
-  width: 1280,
-  height: 720,
+  "width": 1280,
+  "height": 720,
 
   // the quality of generated JPG images
-  quality: 80,
+  "quality": 80,
 
   // browser preferences
-  reducedMotion: "reduce",
-  colorScheme: "dark",
-  forcedColors: "active",
+  "reducedMotion": "reduce",
+  "colorScheme": "dark",
+  "forcedColors": "active",
 }
+```
 
 Storage state allows you to set cookies and local storage before the page is loaded. This is useful for setting authentication tokens or other state that is required for the page to render correctly:
 
-```json
+```jsonc
 {
   "storageState": {
     "cookies: [
@@ -144,58 +145,59 @@ Storage state allows you to set cookies and local storage before the page is loa
     ]
   }
 }
+```
 
 Actions are a list of operations to perform in the browser after the "url" loads:
 
-```json
+```jsonc
 {
   "actions": [
     {
       // click an element
       "type": "click",
-      "selector": "button"
+      "selector": "button",
     },
     {
       // hover an element
       "type": "hover",
-      "selector": "button"
+      "selector": "button",
     },
     {
       // scroll an element into view
       "type": "scroll",
-      "selector": "button"
+      "selector": "button",
     },
     {
       // wait for milliseconds
       "type": "wait",
-      "milliseconds": 500
+      "milliseconds": 500,
     },
     {
       // enter text into an element
       "type": "fill",
       "selector": "input",
-      "text": "Hello world"
+      "text": "Hello world",
     },
     {
       // crop the final image
-      type: "crop",
+      "type": "crop",
       // optional element to use as the viewbox.
       // if not provided, the entire viewport is used
-      selector: "header",
+      "selector": "header",
       // the x / y offset of the crop, relative to viewbox of "selector" if provided
       // if <= 1 then it is a percentage of the viewbox
-      x: 0,
-      y: 0,
+      "x": 0,
+      "y": 0,
       // the width and height of the crop
       // if <= 1 then it is a percentage of the viewbox
-      width: 100,
-      height: 200,
+      "width": 100,
+      "height": 200,
       // padding around the crop
-      padding: 10,
+      "padding": 10,
       // ensures that any scrollable content is included in the crop
-      fullPage: true
-    }
-  ]
+      "fullPage": true,
+    },
+  ],
 }
 ```
 
