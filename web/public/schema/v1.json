@@ -40,9 +40,43 @@
               },
               "frame": {
                 "type": "string"
+              },
+              "count": {
+                "type": "number",
+                "minimum": 1,
+                "maximum": 3,
+                "default": 1
+              },
+              "button": {
+                "type": "string",
+                "enum": [
+                  "left",
+                  "right",
+                  "middle"
+                ],
+                "default": "left"
+              },
+              "position": {
+                "type": "object",
+                "properties": {
+                  "x": {
+                    "type": "number"
+                  },
+                  "y": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "x",
+                  "y"
+                ],
+                "additionalProperties": false
               }
             },
-            "required": ["type", "selector"],
+            "required": [
+              "type",
+              "selector"
+            ],
             "additionalProperties": false
           },
           {
@@ -59,7 +93,10 @@
                 "type": "string"
               }
             },
-            "required": ["type", "selector"],
+            "required": [
+              "type",
+              "selector"
+            ],
             "additionalProperties": false
           },
           {
@@ -79,7 +116,11 @@
                 "type": "string"
               }
             },
-            "required": ["type", "selector", "text"],
+            "required": [
+              "type",
+              "selector",
+              "text"
+            ],
             "additionalProperties": false
           },
           {
@@ -93,7 +134,10 @@
                 "type": "number"
               }
             },
-            "required": ["type", "milliseconds"],
+            "required": [
+              "type",
+              "milliseconds"
+            ],
             "additionalProperties": false
           },
           {
@@ -131,7 +175,9 @@
                 "default": false
               }
             },
-            "required": ["type"],
+            "required": [
+              "type"
+            ],
             "additionalProperties": false
           },
           {
@@ -149,7 +195,10 @@
                 "default": 0
               }
             },
-            "required": ["type", "selector"],
+            "required": [
+              "type",
+              "selector"
+            ],
             "additionalProperties": false
           }
         ]
@@ -163,15 +212,25 @@
     },
     "reducedMotion": {
       "type": "string",
-      "enum": ["no-preference", "reduce"]
+      "enum": [
+        "no-preference",
+        "reduce"
+      ]
     },
     "colorScheme": {
       "type": "string",
-      "enum": ["no-preference", "light", "dark"]
+      "enum": [
+        "no-preference",
+        "light",
+        "dark"
+      ]
     },
     "forcedColors": {
       "type": "string",
-      "enum": ["none", "active"]
+      "enum": [
+        "none",
+        "active"
+      ]
     },
     "template": {
       "type": "string"
@@ -211,11 +270,19 @@
               },
               "sameSite": {
                 "type": "string",
-                "enum": ["Strict", "Lax", "None"],
+                "enum": [
+                  "Strict",
+                  "Lax",
+                  "None"
+                ],
                 "default": "None"
               }
             },
-            "required": ["name", "value", "domain"],
+            "required": [
+              "name",
+              "value",
+              "domain"
+            ],
             "additionalProperties": false
           },
           "default": []
@@ -240,13 +307,18 @@
                       "type": "string"
                     }
                   },
-                  "required": ["name", "value"],
+                  "required": [
+                    "name",
+                    "value"
+                  ],
                   "additionalProperties": false
                 },
                 "default": []
               }
             },
-            "required": ["origin"],
+            "required": [
+              "origin"
+            ],
             "additionalProperties": false
           },
           "default": []
@@ -255,7 +327,9 @@
       "additionalProperties": false
     }
   },
-  "required": ["url"],
+  "required": [
+    "url"
+  ],
   "additionalProperties": false,
   "description": "Asset configuration",
   "$schema": "http://json-schema.org/draft-07/schema#"
