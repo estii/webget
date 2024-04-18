@@ -28,7 +28,7 @@ The JSON configuration file adheres to a schema, and looks like this:
 ## Installation
 
 ```bash
-npm install webget
+npm install webgets
 ```
 
 ## Usage
@@ -120,17 +120,17 @@ Storage state allows you to set cookies and local storage before the page is loa
 ```jsonc
 {
   "storageState": {
-    "cookies: [
+    "cookies": [
       {
-        name: "session",
-        value: "secrets",
-        domain: "usewebget.com",
-        path: "/",
-        expires: -1,
-        httpOnly: true,
-        secure: true.
-        sameSite: "Lax"
-      }
+        "name": "session",
+        "value": "secrets",
+        "domain": "usewebget.com",
+        "path": "/",
+        "expires": -1,
+        "httpOnly": true,
+        "secure": true,
+        "sameSite": "Lax",
+      },
     ],
     "origins": [
       {
@@ -138,12 +138,12 @@ Storage state allows you to set cookies and local storage before the page is loa
         "localStorage": [
           {
             "name": "token",
-            "value": "1234"
-          }
-        ]
-      }
-    ]
-  }
+            "value": "1234",
+          },
+        ],
+      },
+    ],
+  },
 }
 ```
 
