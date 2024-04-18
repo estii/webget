@@ -45,7 +45,7 @@ export const storageStateSchema = z.object({
 
 export const assetSchema = z
   .object({
-    $schema: z.string().default("https://webget.com/schema/asset.json"),
+    $schema: z.string().default("https://usewebget.com/schema/v1.json"),
     url: z.string(),
     deviceScaleFactor: z.number().min(1).max(3).optional(),
     baseUrl: z.string().optional(),

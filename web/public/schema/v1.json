@@ -1,0 +1,262 @@
+{
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "default": "https://usewebget.com/schema/v1.json"
+    },
+    "url": {
+      "type": "string"
+    },
+    "deviceScaleFactor": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 3
+    },
+    "baseUrl": {
+      "type": "string"
+    },
+    "width": {
+      "type": "number",
+      "minimum": 1
+    },
+    "height": {
+      "type": "number",
+      "minimum": 1
+    },
+    "actions": {
+      "type": "array",
+      "items": {
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "click"
+              },
+              "selector": {
+                "type": "string"
+              },
+              "frame": {
+                "type": "string"
+              }
+            },
+            "required": ["type", "selector"],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "hover"
+              },
+              "selector": {
+                "type": "string"
+              },
+              "frame": {
+                "type": "string"
+              }
+            },
+            "required": ["type", "selector"],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "fill"
+              },
+              "selector": {
+                "type": "string"
+              },
+              "frame": {
+                "type": "string"
+              },
+              "text": {
+                "type": "string"
+              }
+            },
+            "required": ["type", "selector", "text"],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "wait"
+              },
+              "milliseconds": {
+                "type": "number"
+              }
+            },
+            "required": ["type", "milliseconds"],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "crop"
+              },
+              "selector": {
+                "type": "string"
+              },
+              "x": {
+                "type": "number",
+                "default": 0
+              },
+              "y": {
+                "type": "number",
+                "default": 0
+              },
+              "width": {
+                "type": "number",
+                "default": 1
+              },
+              "height": {
+                "type": "number",
+                "default": 1
+              },
+              "padding": {
+                "type": "number",
+                "default": 0
+              },
+              "fullPage": {
+                "type": "boolean",
+                "default": false
+              }
+            },
+            "required": ["type"],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "scroll"
+              },
+              "selector": {
+                "type": "string"
+              },
+              "offset": {
+                "type": "number",
+                "default": 0
+              }
+            },
+            "required": ["type", "selector"],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "default": []
+    },
+    "quality": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "reducedMotion": {
+      "type": "string",
+      "enum": ["no-preference", "reduce"]
+    },
+    "colorScheme": {
+      "type": "string",
+      "enum": ["no-preference", "light", "dark"]
+    },
+    "forcedColors": {
+      "type": "string",
+      "enum": ["none", "active"]
+    },
+    "template": {
+      "type": "string"
+    },
+    "storageState": {
+      "type": "object",
+      "properties": {
+        "cookies": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "value": {
+                "type": "string"
+              },
+              "domain": {
+                "type": "string"
+              },
+              "path": {
+                "type": "string",
+                "default": "/"
+              },
+              "expires": {
+                "type": "number",
+                "default": -1
+              },
+              "httpOnly": {
+                "type": "boolean",
+                "default": false
+              },
+              "secure": {
+                "type": "boolean",
+                "default": false
+              },
+              "sameSite": {
+                "type": "string",
+                "enum": ["Strict", "Lax", "None"],
+                "default": "None"
+              }
+            },
+            "required": ["name", "value", "domain"],
+            "additionalProperties": false
+          },
+          "default": []
+        },
+        "origins": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "origin": {
+                "type": "string"
+              },
+              "localStorage": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "value": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["name", "value"],
+                  "additionalProperties": false
+                },
+                "default": []
+              }
+            },
+            "required": ["origin"],
+            "additionalProperties": false
+          },
+          "default": []
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "required": ["url"],
+  "additionalProperties": false,
+  "description": "Asset configuration",
+  "$schema": "http://json-schema.org/draft-07/schema#"
+}
