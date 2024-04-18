@@ -1,2 +1,3 @@
+# webget
 name = "webget"
 compatibility_flags = [ "nodejs_compat" ]
