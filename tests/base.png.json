@@ -1,4 +1,4 @@
 {
-  "$schema": "../schema.json",
+  "$schema": "https://usewebget.com/schema/v1.json",
   "url": "/pricing"
 }

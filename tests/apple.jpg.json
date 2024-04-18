@@ -1,5 +1,5 @@
 {
-  "$schema": "../schema.json",
+  "$schema": "https://usewebget.com/schema/v1.json",
   "url": "https://apple.com",
   "actions": [
     {
