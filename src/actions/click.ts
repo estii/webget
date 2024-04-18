@@ -6,6 +6,9 @@ export const clickActionSchema = z
     type: z.literal("click"),
     selector: z.string(),
     frame: z.string().optional(),
+    count: z.number().min(1).max(3).default(1),
+    button: z.enum(["left", "right", "middle"]).default("left"),
+    position: z.optional(z.object({ x: z.number(), y: z.number() })),
   })
   .strict();
 
@@ -23,7 +26,11 @@ export async function clickAction(page: Page, action: ClickAction) {
   }
 
   try {
-    await target.locator(action.selector).click();
+    await target.locator(action.selector).click({
+      clickCount: action.count,
+      button: action.button,
+      position: action.position,
+    });
   } catch (error) {
     throw new Error(`selector "${action.selector}" not found`);
   }

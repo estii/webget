@@ -5,7 +5,7 @@ import type { CompareParams, CompareResult } from "./runtime-script";
 
 async function getScript() {
   const output = await Bun.build({
-    entrypoints: ["runtime-script.ts"],
+    entrypoints: ["./src/runtime-script.ts"],
     target: "browser",
   });
 
