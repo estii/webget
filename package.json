@@ -44,6 +44,7 @@
     "zod-to-ts": "^1.2.0"
   },
   "files": [
+    "package.json",
     "bin/webget",
     "src/index.js",
     "src/index.d.ts",
