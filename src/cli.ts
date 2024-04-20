@@ -138,8 +138,8 @@ async function isServerRunning() {
 }
 
 function findPath() {
-  if (existsSync("./node_modules/webget")) {
-    return "./node_modules/webget";
+  if (existsSync("./node_modules/webgets")) {
+    return "./node_modules/webgets";
   }
   return "./";
 }
