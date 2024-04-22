@@ -48,7 +48,7 @@
           0px 12.5px;
       }
 
-      .content {
+      #content {
         position: absolute;
         inset: 0;
         background-position: top;
@@ -181,7 +181,7 @@
         </svg>
       </div>
       <div class="placeholder">
-        <div class="content"></div>
+        <div id="content"></div>
       </div>
       <div class="footer">
         <div class="search">
@@ -293,6 +293,9 @@
       hostname.textContent = new URL(
         url.searchParams.get("url") ?? "domain.com"
       ).hostname;
+
+      const content = document.getElementById("content");
+      content.style.backgroundImage = `url(${url.searchParams.get("src")})`;
     </script>
   </body>
 </html>

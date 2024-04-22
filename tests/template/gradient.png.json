@@ -1,8 +1,11 @@
 {
   "$schema": "https://usewebget.com/schema/v1.json",
-  "url": "https://estii.com",
+  "url": "template://gradient.html",
   "deviceScaleFactor": 2,
-  "width": 1280,
-  "height": 720,
-  "template": "gradient.html"
+  "inputs": {
+    "src": {
+      "url": "https://estii.com",
+      "deviceScaleFactor": 2
+    }
+  }
 }

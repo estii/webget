@@ -1,5 +1,6 @@
-node_modules
-tests/**/*.png
-tests/**/*.jpg
-.DS_Store
+/node_modules
+/tests/**/*.png
+/tests/**/*.jpg
+/assets
 /bin
+.DS_Store

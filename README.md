@@ -70,7 +70,7 @@ npx webget server
 Webget can be customised using a `webget.config.ts` file in the root of your project. Here is an example configuration:
 
 ```typescript
-import type { WebgetConfig } from "./src/types";
+import type { WebgetConfig } from "webgets";
 
 const config: WebgetConfig = {
   async setup(asset) {
@@ -201,4 +201,4 @@ Actions are a list of operations to perform in the browser after the "url" loads
 }
 ```
 
-Templates are experimental right now. They allow you to define an HTML template that your screenshot is loaded into. There are some examples in [tests](https://github.com/estii/webget/tree/main/tests).
+Templates are experimental right now. They allow you to define an HTML template that your screenshot is loaded into. There are some examples in [tests](https://github.com/estii/webget/tree/main/tests/template).

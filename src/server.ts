@@ -1,65 +1,33 @@
-import staticPlugin from "@elysiajs/static";
-import { Elysia, t } from "elysia";
-import { PORT } from "./constants";
-import { updateOrError } from "./screenshot";
-import { getMime } from "./utils";
+import { zValidator } from "@hono/zod-validator";
+import { Hono } from "hono";
+import { serveStatic } from "hono/bun";
+import { PORT, SERVER_URL } from "./constants";
+import { assetSchema } from "./schema";
+import { update } from "./screenshot";
+
+export const api = new Hono()
+  .use("/public/*", serveStatic({ root: "./" }))
+  .use("/assets/*", serveStatic({ root: "./" }))
+  .post("/update", zValidator("json", assetSchema), async (c) => {
+    const asset = c.req.valid("json");
+    const result = await update(asset);
+    return c.json(result);
+  })
+  .get("/stop", (c) => c.text("ok"))
+  .get("/health", (c) => c.text("ok"));
 
 export function runServer(port = PORT) {
-  console.log(`Started on http://localhost:${port}`);
-  return new Elysia()
-    .onResponse(async ({ path }) => {
-      if (path === "/stop") {
-        await new Promise((resolve) => setTimeout(resolve, 100));
-        process.exit(0);
+  console.log(`Started server ${SERVER_URL}`);
+  const server = Bun.serve({
+    fetch: (req) => {
+      if (req.url.endsWith("/stop")) {
+        server.stop();
       }
-    })
-    .get("/stop", async () => {
-      console.log("Shutting down...");
-    })
-    .get(
-      "/screenshot",
-      async ({ query: { path, headed, diff } }) => {
-        return updateOrError({ headless: !headed, diff }, path);
-      },
-      {
-        query: t.Object({
-          path: t.String(),
-          headed: t.BooleanString(),
-          diff: t.BooleanString(),
-        }),
-      }
-    )
-    .get(
-      "/image",
-      async ({ query: { path } }) => {
-        const mime = getMime(path);
-        const file = Bun.file(path);
-        return new Response(file, {
-          headers: { "Content-Type": mime, "Cache-Control": "no-store" },
-        });
-      },
-      {
-        query: t.Object({
-          path: t.String(),
-        }),
-      }
-    )
-    .post(
-      "/image",
-      async ({ query: { path }, body }) => {
-        await Bun.write(path, body);
-        return new Response(null, { status: 200 });
-      },
-      {
-        query: t.Object({
-          path: t.String(),
-        }),
-        body: t.Uint8Array(),
-      }
-    )
-    .get("/health", () => "OK")
-    .use(staticPlugin())
-    .listen(port);
+      return api.fetch(req);
+    },
+    port,
+  });
+  return server;
 }
 
-export type App = ReturnType<typeof runServer>;
+export type API = typeof api;

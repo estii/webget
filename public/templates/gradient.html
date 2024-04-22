@@ -16,7 +16,7 @@
         justify-content: center;
         align-items: center;
       }
-      .content {
+      #content {
         width: 80%;
         height: 80%;
         background-repeat: no-repeat;
@@ -32,7 +32,12 @@
   </head>
   <body>
     <div id="bounds">
-      <div class="content"></div>
+      <div id="content"></div>
     </div>
   </body>
+  <script>
+    const url = new URL(location.href);
+    const content = document.getElementById("content");
+    content.style.backgroundImage = `url(${url.searchParams.get("src")})`;
+  </script>
 </html>

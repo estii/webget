@@ -1,13 +1,14 @@
-import { treaty } from "@elysiajs/eden";
+import { hc } from "hono/client";
 import { Listr } from "listr2";
 import { existsSync } from "node:fs";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 import { SERVER_URL } from "./constants";
-import type { ScreenshotResult } from "./screenshot";
-import { runServer, type App } from "./server";
+import { getAsset } from "./schema";
+import type { ScreenshotOutcome } from "./screenshot";
+import { runServer, type API } from "./server";
 
-const daemon = treaty<App>(SERVER_URL);
+const api = hc<API>(SERVER_URL);
 
 function getOutput(input: string) {
   return input.replace(".json", "");
@@ -42,15 +43,16 @@ function getStatusEmoji(status: TaskStatus) {
   }
 }
 
-function getTaskTitle(path: string, result?: ScreenshotResult) {
+function getTaskTitle(path: string, result?: ScreenshotOutcome) {
   let relative = getRelative(path);
   if (!result) return relative;
 
-  if (result.error) {
-    relative = getRelative(path + ".json");
-  }
   const emoji = getStatusEmoji(result.status);
-  return `${relative} ${emoji} ${result.error ?? ""}`;
+  if (result.status === "error") {
+    relative = getRelative(path + ".json");
+    return `${relative} ${emoji} ${result.error}`;
+  }
+  return `${relative} ${emoji}`;
 }
 
 yargs(hideBin(process.argv))
@@ -121,7 +123,7 @@ yargs(hideBin(process.argv))
     () => ({}),
     async () => {
       await stopServer();
-      const path = findPath();
+      const path = getHome();
       process.chdir(path);
       runServer();
     }
@@ -130,14 +132,14 @@ yargs(hideBin(process.argv))
 
 async function isServerRunning() {
   try {
-    const res = await daemon.health.get();
-    return !res.error;
+    const res = await api.health.$get();
+    return res.ok;
   } catch (e) {
     return false;
   }
 }
 
-function findPath() {
+export function getHome() {
   if (existsSync("./node_modules/webgets")) {
     return "./node_modules/webgets";
   }
@@ -149,7 +151,7 @@ async function startServer(log = false) {
   if (running) {
     if (log) console.log("Server running");
   } else {
-    const path = findPath();
+    const path = getHome();
     const proc = Bun.spawn([`${path}/bin/webget`, "server"], {
       cwd: path,
       stdout: "ignore",
@@ -164,7 +166,7 @@ async function startServer(log = false) {
 async function stopServer(log = false) {
   const running = await isServerRunning();
   if (running) {
-    await daemon.stop.get();
+    await api.stop.$get();
     if (log) console.log("Server stopped");
   } else {
     if (log) console.log("Server not running");
@@ -172,15 +174,19 @@ async function stopServer(log = false) {
 }
 
 async function getScreenshot(path: string, headed = false, diff = false) {
-  const { data, error } = await daemon.screenshot.get({
-    query: { path, headed, diff },
-  });
-  if (error) {
+  const asset = await getAsset(path, headed, diff);
+  const res = await api.update.$post({ json: asset });
+
+  if (!res.ok) {
     return { status: "error" as const, error: "Newtwork error" };
   }
-  if (data.error) {
-    const relative = getRelative(path + ".json");
-    throw new Error(`${relative} ${data.error}`);
+
+  const result = await res.json();
+
+  if (result.status === "created" || result.status === "updated") {
+    const image = await fetch(result.path);
+    await Bun.write(asset.output, image);
   }
-  return data;
+
+  return result;
 }

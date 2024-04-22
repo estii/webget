@@ -12,6 +12,7 @@
   "homepage": "https://github.com/dpeek/webget",
   "keywords": [
     "playwright",
+    "puppeteer",
     "screenshot",
     "automation",
     "documentation",
@@ -24,17 +25,18 @@
     "webget": "./bin/webget"
   },
   "dependencies": {
-    "playwright": "^1.42.0"
+    "puppeteer": "^22.6.5"
   },
   "devDependencies": {
-    "@elysiajs/eden": "^1.0.7",
-    "@elysiajs/static": "^1.0.2",
+    "hono": "^4.2.6",
+    "playwright": "^1.42.0",
+    "@hono/zod-validator": "^0.2.1",
     "@types/bun": "latest",
     "@types/listr": "^0.14.9",
     "@types/yargs": "^17.0.32",
     "any-observable": "^0.5.1",
-    "elysia": "^1.0.9",
     "listr2": "^8.1.1",
+    "nanoid": "^5.0.7",
     "prettier": "^3.2.5",
     "typescript": "^5.2.0",
     "yargs": "^17.7.2",
@@ -52,7 +54,6 @@
   ],
   "scripts": {
     "vercel-build": "next build",
-    "postinstall": "playwright install",
     "clean": "bun src/scripts/clean.ts",
     "schema": "bun src/scripts/schema.ts",
     "types": "bun src/scripts/types.ts",

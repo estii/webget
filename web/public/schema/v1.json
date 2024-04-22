@@ -3,7 +3,7 @@
   "properties": {
     "$schema": {
       "type": "string",
-      "default": "https://usewebget.com/schema/v1.json"
+      "const": "https://usewebget.com/schema/v1.json"
     },
     "url": {
       "type": "string"
@@ -14,6 +14,9 @@
       "maximum": 3
     },
     "baseUrl": {
+      "type": "string"
+    },
+    "border": {
       "type": "string"
     },
     "width": {
@@ -33,19 +36,35 @@
             "properties": {
               "type": {
                 "type": "string",
+                "const": "goto"
+              },
+              "url": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "type",
+              "url"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
                 "const": "click"
               },
               "selector": {
                 "type": "string"
               },
-              "frame": {
+              "frameSelector": {
                 "type": "string"
               },
-              "count": {
+              "clickCount": {
                 "type": "number",
                 "minimum": 1,
-                "maximum": 3,
-                "default": 1
+                "maximum": 3
               },
               "button": {
                 "type": "string",
@@ -53,8 +72,7 @@
                   "left",
                   "right",
                   "middle"
-                ],
-                "default": "left"
+                ]
               },
               "position": {
                 "type": "object",
@@ -151,28 +169,22 @@
                 "type": "string"
               },
               "x": {
-                "type": "number",
-                "default": 0
+                "type": "number"
               },
               "y": {
-                "type": "number",
-                "default": 0
+                "type": "number"
               },
               "width": {
-                "type": "number",
-                "default": 1
+                "type": "number"
               },
               "height": {
-                "type": "number",
-                "default": 1
+                "type": "number"
               },
               "padding": {
-                "type": "number",
-                "default": 0
+                "type": "number"
               },
               "fullPage": {
-                "type": "boolean",
-                "default": false
+                "type": "boolean"
               }
             },
             "required": [
@@ -191,8 +203,7 @@
                 "type": "string"
               },
               "offset": {
-                "type": "number",
-                "default": 0
+                "type": "number"
               }
             },
             "required": [
@@ -202,8 +213,7 @@
             "additionalProperties": false
           }
         ]
-      },
-      "default": []
+      }
     },
     "quality": {
       "type": "number",
@@ -232,9 +242,6 @@
         "active"
       ]
     },
-    "template": {
-      "type": "string"
-    },
     "storageState": {
       "type": "object",
       "properties": {
@@ -253,20 +260,16 @@
                 "type": "string"
               },
               "path": {
-                "type": "string",
-                "default": "/"
+                "type": "string"
               },
               "expires": {
-                "type": "number",
-                "default": -1
+                "type": "number"
               },
               "httpOnly": {
-                "type": "boolean",
-                "default": false
+                "type": "boolean"
               },
               "secure": {
-                "type": "boolean",
-                "default": false
+                "type": "boolean"
               },
               "sameSite": {
                 "type": "string",
@@ -274,18 +277,21 @@
                   "Strict",
                   "Lax",
                   "None"
-                ],
-                "default": "None"
+                ]
               }
             },
             "required": [
               "name",
               "value",
-              "domain"
+              "domain",
+              "path",
+              "expires",
+              "httpOnly",
+              "secure",
+              "sameSite"
             ],
             "additionalProperties": false
-          },
-          "default": []
+          }
         },
         "origins": {
           "type": "array",
@@ -312,25 +318,45 @@
                     "value"
                   ],
                   "additionalProperties": false
-                },
-                "default": []
+                }
               }
             },
             "required": [
-              "origin"
+              "origin",
+              "localStorage"
             ],
             "additionalProperties": false
-          },
-          "default": []
+          }
         }
       },
       "additionalProperties": false
+    },
+    "omitBackground": {
+      "type": "boolean"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "png",
+        "jpeg"
+      ]
+    },
+    "headed": {
+      "type": "boolean"
+    },
+    "diff": {
+      "type": "boolean"
+    },
+    "inputs": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#"
+      }
     }
   },
   "required": [
     "url"
   ],
   "additionalProperties": false,
-  "description": "Asset configuration",
   "$schema": "http://json-schema.org/draft-07/schema#"
 }

@@ -1,6 +1,18 @@
 {
   "$schema": "https://usewebget.com/schema/v1.json",
-  "url": "https://estii.com",
+  "url": "template://device.html?device=iPadPro129",
   "deviceScaleFactor": 3,
-  "template": "device.html?device=iPadPro129&url=https://estii.com"
+  "omitBackground": true,
+  "inputs": {
+    "src": {
+      "url": "https://estii.com",
+      "deviceScaleFactor": 3
+    }
+  },
+  "actions": [
+    {
+      "type": "crop",
+      "selector": "#bounds"
+    }
+  ]
 }

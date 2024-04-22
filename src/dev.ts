@@ -1,3 +1,4 @@
-import { runServer } from "./server";
+import { PORT } from "./constants";
+import { api } from "./server";
 
-runServer();
+export default { fetch: api.fetch, port: PORT };

@@ -1,5 +1,7 @@
-import { type Page } from "playwright";
-import { getBrowser } from "./browser";
+// import { type Page } from "playwright";
+// import { getBrowser } from "./browser/playwright";
+import type { Page } from "puppeteer";
+import { getBrowser } from "./browser/puppeteer";
 import { SERVER_URL } from "./constants";
 import type { CompareParams, CompareResult } from "./runtime-script";
 
@@ -21,7 +23,8 @@ function getRuntime() {
     runtime = getBrowser().then(async (browser) => {
       const page = await browser.newPage();
       const script = await getScript();
-      await page.addInitScript({ content: script });
+      // await page.addInitScript({ content: script });
+      await page.addScriptTag({ content: script });
       await page.goto(SERVER_URL);
       page.on("console", (msg) => console.log(msg.type(), msg.text()));
       page.on("pageerror", (msg) => console.log("runtime", msg));

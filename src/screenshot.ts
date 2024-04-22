@@ -1,15 +1,26 @@
-import os from "node:os";
+import { customAlphabet } from "nanoid";
 import { join } from "node:path";
-import { clickAction } from "./actions/click";
-import { cropAction } from "./actions/crop";
-import { fillAction } from "./actions/fill";
-import { hoverAction } from "./actions/hover";
-import { scrollAction } from "./actions/scroll";
-import { waitAction } from "./actions/wait";
-import { getBrowser } from "./browser";
+import { PuppeteerSession } from "./browser/puppeteer";
+import { getHome } from "./cli";
 import { SERVER_URL } from "./constants";
-import { compare } from "./runtime";
-import { getAsset, type Asset } from "./schema";
+import { type Asset, type AssetConfig } from "./schema";
+
+export type ScreenshotOutcome = ScreenshotResult | ScreenshotError;
+
+export type ScreenshotError = {
+  status: "error";
+  error: string;
+};
+
+export type ScreenshotResult = {
+  status: "created" | "updated" | "matched";
+  path: string;
+};
+
+const alphabet =
+  "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+
+export const getId = customAlphabet(alphabet, 8);
 
 function getErrorMessage(error: unknown) {
   if (error instanceof Error) {
@@ -18,165 +29,54 @@ function getErrorMessage(error: unknown) {
   return "Unknown error";
 }
 
-type Options = {
-  headless: boolean;
-  diff: boolean;
-};
-
-export type ScreenshotResult = {
-  status: "created" | "updated" | "matched" | "error";
-  error?: string;
-};
-
-async function getAssetContext(options: Options, asset: Asset) {
-  const browser = await getBrowser(options.headless);
-  const context = await browser.newContext({
-    viewport: { width: asset.width ?? 1280, height: asset.height ?? 720 },
-    baseURL: asset.baseUrl,
-    deviceScaleFactor: asset.deviceScaleFactor,
-    colorScheme: asset.colorScheme,
-    reducedMotion: asset.reducedMotion,
-    forcedColors: asset.forcedColors,
-    storageState: asset.storageState,
-  });
-  context[Symbol.asyncDispose] = () => context.close();
-  return context;
-}
-
-export async function updateOrError(
-  options: Options,
-  path: string
-): Promise<ScreenshotResult> {
+export async function update(asset: Asset): Promise<ScreenshotOutcome> {
   try {
-    return await update(options, path);
+    return await doUpdate(asset);
   } catch (error) {
     return { status: "error", error: getErrorMessage(error) };
   }
 }
 
-async function update(
-  options: Options,
-  path: string
-): Promise<ScreenshotResult> {
-  const asset = await getAsset(path);
-  await using context = await getAssetContext(options, asset);
+export async function doUpdate(asset: AssetConfig): Promise<ScreenshotOutcome> {
+  const url = new URL(
+    asset.url.replace("template://", SERVER_URL + "/public/templates/")
+  );
 
-  const page = await context.newPage();
-  page.setDefaultTimeout(5000);
-  page.setDefaultNavigationTimeout(10000);
-
-  const temp = join(os.tmpdir(), asset.output);
-  await page.goto(asset.url, { waitUntil: "networkidle" });
-
-  let crop = await cropAction(page, {
-    type: "crop",
-    x: 0,
-    y: 0,
-    width: 1,
-    height: 1,
-    padding: 0,
-    fullPage: false,
-  });
-
-  for (const action of asset.actions) {
-    if (action.type === "click") {
-      await clickAction(page, action);
-    } else if (action.type === "crop") {
-      crop = await cropAction(page, action);
-    } else if (action.type === "wait") {
-      await waitAction(page, action);
-    } else if (action.type === "fill") {
-      await fillAction(page, action);
-    } else if (action.type === "hover") {
-      await hoverAction(page, action);
-    } else if (action.type === "scroll") {
-      await scrollAction(page, action);
+  if (asset.inputs) {
+    const entries = await Promise.all(
+      Object.entries(asset.inputs).map(([key, value]) => {
+        return new Promise<[string, ScreenshotOutcome]>(
+          async (resolve, reject) => {
+            const result = await doUpdate(value);
+            resolve([key, result]);
+          }
+        );
+      })
+    );
+    for (const [key, value] of entries) {
+      if (value.status === "error") {
+        return value;
+      } else {
+        url.searchParams.set(key, value.path);
+      }
     }
   }
 
-  const exists = await Bun.file(asset.output).exists();
+  await using session = await PuppeteerSession.getSession(asset);
 
-  if (asset.template) {
-    const browser = await getBrowser(options.headless);
-    const template = await browser.newPage({
-      deviceScaleFactor: asset.deviceScaleFactor,
-    });
-
-    // take screenshot of the page
-    await page.screenshot({
-      path: temp,
-      type: asset.type,
-      quality: asset.type === "jpeg" ? asset.quality : undefined,
-      clip: crop.rect,
-      animations: "disabled",
-    });
-
-    const url = new URL(`${SERVER_URL}/public/templates/${asset.template}`);
-    const src = `http://localhost:3637/image?path=${temp}`;
-    url.searchParams.set("url", asset.url);
-    url.searchParams.set("src", src);
-    await template.goto(url.href);
-
-    const bounds = await template.locator("#bounds").boundingBox();
-    if (bounds) {
-      await template.setViewportSize({
-        width: bounds.width,
-        height: bounds.height,
-      });
-    }
-
-    // await template.setViewportSize({
-    //   width: asset.width ?? 1280,
-    //   height: asset.height ?? 720,
-    // });
-
-    // await template.setViewportSize({
-    //   width: bounds.width,
-    //   height: bounds.height,
-    // });
-
-    // const contentRect = await content.boundingBox();
-    // if (!contentRect) {
-    //   throw new Error("Invalid template");
-    // }
-
-    // set page to the size of the templates content
-    // await page.setViewportSize({
-    //   width: contentRect.width,
-    //   height: contentRect.height,
-    // });
-
-    const image = await template.screenshot({ omitBackground: true });
-    await Bun.write(temp, image);
-
-    await template.close();
-  } else {
-    await page.screenshot({
-      path: temp,
-      type: asset.type,
-      quality: asset.type === "jpeg" ? asset.quality : undefined,
-      clip: crop.rect,
-      animations: "disabled",
-    });
+  console.log(url.href);
+  await session.goto({ url: url.href });
+  for (const action of asset.actions ?? []) {
+    await session.doAction(action);
   }
 
-  if (exists && options.diff) {
-    const result = await compare({ path1: asset.output, path2: temp });
+  const image = await session.screenshot(asset);
+  const id = getId();
+  const file = `assets/${id}.${asset.type === "jpeg" ? "jpg" : "png"}`;
+  await Bun.write(join(getHome(), file), image);
 
-    const matched = result.ssim > 0.99;
-    if (!matched) {
-      await Bun.write(asset.output, Bun.file(temp));
-    }
-
-    return {
-      status: matched ? "matched" : "updated",
-      error: matched
-        ? undefined
-        : `similarity ${Math.round(result.ssim * 100)}%`,
-    };
-  } else {
-    await Bun.write(asset.output, Bun.file(temp));
-  }
-
-  return { status: "created" };
+  return {
+    status: "created",
+    path: `${SERVER_URL}/${file}`,
+  };
 }
