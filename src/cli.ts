@@ -226,7 +226,7 @@ async function stopServer(log = false) {
 
 async function getScreenshot(output: string, headed = false, diff = false) {
   const asset = await getAsset(output, headed, diff);
-  const res = await api.screenshot.$post({ json: asset });
+  const res = await api.screenshots.$post({ json: asset });
 
   if (!res.ok) {
     return { status: "error" as const, error: "Newtwork error" };

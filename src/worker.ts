@@ -9,6 +9,7 @@ import { getErrorMessage, getId } from "./utils";
 // @ts-ignore - magical workers thing
 import manifest from "__STATIC_CONTENT_MANIFEST";
 import { serveStatic } from "hono/cloudflare-workers";
+import { z } from "zod";
 
 type Bindings = {
   browser: Fetcher;
@@ -23,6 +24,13 @@ export class BrowserSession extends DurableObject<Bindings> {
   browser: Browser | undefined;
 
   async render(asset: Asset) {
+    const colo = (
+      (
+        await (await fetch("https://www.cloudflare.com/cdn-cgi/trace")).text()
+      ).match(/^colo=(.+)/m) as string[]
+    )[1];
+    console.log({ colo });
+
     if (!this.browser || !this.browser.isConnected()) {
       console.log("launch new browser session");
       // @ts-ignore - type error from @cloudflare/puppeteer
@@ -99,8 +107,8 @@ async function render(
   const page = await browser.newPage();
 
   try {
-    page.setDefaultTimeout(5000);
-    page.setDefaultNavigationTimeout(5000);
+    page.setDefaultTimeout(10000);
+    page.setDefaultNavigationTimeout(10000);
 
     const session = new PuppeteerSession(page as any, asset);
     await session.init();
@@ -128,17 +136,39 @@ async function render(
   }
 }
 
+const locationHintSchema = z.enum([
+  "wnam",
+  "enam",
+  "sam",
+  "weur",
+  "eeur",
+  "apac",
+  "oc",
+  "afr",
+  "me",
+]);
+
 const app = new Hono<{ Bindings: Bindings }>()
   .get("/*", serveStatic({ manifest }))
-  .post("/screenshot", zValidator("json", assetSchema), async (c) => {
-    const asset = c.req.valid("json");
-    const locationHint: DurableObjectLocationHint = "apac";
-    const num = 1;
-    const id = c.env.browserSession.idFromName(locationHint + num.toString());
-    const stub = c.env.browserSession.get(id, { locationHint });
-    const result = await stub.render(asset);
-    return c.json(result);
-  })
+  .post(
+    "/screenshots",
+    zValidator("json", assetSchema),
+    zValidator(
+      "query",
+      z.object({
+        locationHint: locationHintSchema.default("apac"),
+      })
+    ),
+    async (c) => {
+      const asset = c.req.valid("json");
+      const { locationHint } = c.req.valid("query");
+      const num = 1;
+      const id = c.env.browserSession.idFromName(locationHint + num.toString());
+      const stub = c.env.browserSession.get(id, { locationHint });
+      const result = await stub.render(asset);
+      return c.json(result);
+    }
+  )
   .get("/screenshots/*", async (c) => {
     const url = new URL(c.req.url);
     const key = url.pathname.slice("/screenshots/".length);

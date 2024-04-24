@@ -146,16 +146,16 @@ export const assetBaseSchema = z
   .strict();
 
 export type Asset = z.output<typeof assetBaseSchema> & {
-  inputs: Record<string, Asset>;
+  inputs?: Record<string, Asset>;
 };
 
 type AssetInput = z.input<typeof assetBaseSchema> & {
-  inputs: Record<string, AssetInput>;
+  inputs?: Record<string, AssetInput>;
 };
 
 export const assetSchema: z.ZodType<Asset, any, AssetInput> =
   assetBaseSchema.extend({
-    inputs: z.lazy(() => z.record(assetSchema)),
+    inputs: z.lazy(() => z.record(assetSchema).optional()),
   });
 
 export function formatIssue(issue?: z.ZodIssue) {

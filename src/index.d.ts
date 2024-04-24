@@ -92,7 +92,7 @@ declare module "webget" {
     type?: "png" | "jpeg";
     headed?: boolean;
     diff?: boolean;
-    inputs: Asset;
+    inputs?: Asset;
   };
 
   export type WebgetConfig = {
