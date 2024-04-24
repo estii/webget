@@ -1,8 +1,8 @@
 import prettier from "prettier";
 import { createTypeAlias, printNode, zodToTs } from "zod-to-ts";
-import { assetConfigSchema } from "../schema";
+import { assetSchema } from "../schema";
 
-const { node } = zodToTs(assetConfigSchema, "Asset");
+const { node } = zodToTs(assetSchema, "Asset");
 
 const asset = createTypeAlias(node, "Asset");
 

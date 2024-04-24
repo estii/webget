@@ -290,9 +290,7 @@
       document.body.classList.add(device);
 
       const hostname = document.querySelector(".hostname");
-      hostname.textContent = new URL(
-        url.searchParams.get("url") ?? "domain.com"
-      ).hostname;
+      hostname.textContent = url.searchParams.get("hostname") ?? "domain.com";
 
       const content = document.getElementById("content");
       content.style.backgroundImage = `url(${url.searchParams.get("src")})`;

@@ -1,5 +1,5 @@
 {
-  "$schema": "https://usewebget.com/schema/v1.json",
+  "$schema": "https://webget.estii.workers.dev/schema/v1.json",
   "url": "template://device.html?device=MacBookPro14",
   "deviceScaleFactor": 2,
   "omitBackground": true,

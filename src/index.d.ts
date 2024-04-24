@@ -1,6 +1,6 @@
 declare module "webget" {
   export type Asset = {
-    $schema?: "https://usewebget.com/schema/v1.json" | undefined;
+    $schema?: "https://webget.estii.workers.dev/schema/v1.json" | undefined;
     url: string;
     deviceScaleFactor?: number | undefined;
     baseUrl?: string | undefined;

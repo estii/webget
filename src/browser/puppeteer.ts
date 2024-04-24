@@ -1,15 +1,7 @@
-import {
-  ElementHandle,
-  launch,
-  type Browser,
-  type BrowserContext,
-  type Frame,
-  type Page,
-} from "puppeteer";
+import { type ElementHandle, type Page } from "puppeteer";
 import type {
   Action,
   Asset,
-  AssetConfig,
   ClickAction,
   CropParams,
   FillParams,
@@ -19,66 +11,48 @@ import type {
   WaitAction,
 } from "../schema";
 
-let headedBrowser: Promise<Browser> | null = null;
-function getHeadedBrowser() {
-  if (headedBrowser === null) {
-    headedBrowser = launch({ headless: false });
-  }
-  return headedBrowser;
-}
-
-let headlessBrowser: Promise<Browser> | null = null;
-function getHeadlessBrowser() {
-  if (headlessBrowser === null) {
-    headlessBrowser = launch({ headless: true });
-  }
-  return headlessBrowser;
-}
-
-export async function getBrowser(headed = false) {
-  if (headed) {
-    return getHeadedBrowser();
-  }
-  return getHeadlessBrowser();
-}
-
-type Crop = {
-  rect: { x: number; y: number; width: number; height: number };
-  fullPage: boolean;
-};
+type Rect = { x: number; y: number; width: number; height: number };
 
 export class PuppeteerSession {
-  static async getSession(asset: AssetConfig) {
-    const browser = await getBrowser(asset.headed);
-    const context = await browser.createBrowserContext({
-      // baseURL: asset?.baseUrl,
+  private _clip: Rect;
+
+  constructor(
+    public readonly page: Page,
+    public readonly asset: Asset
+  ) {
+    this._clip = {
+      x: 0,
+      y: 0,
+      width: asset.width ?? 1280,
+      height: asset.height ?? 720,
+    };
+  }
+
+  async init() {
+    const page = this.page;
+    const asset = this.asset;
+
+    await this.page.setViewport({
+      width: asset.width ?? 1280,
+      height: asset.height ?? 720,
+      deviceScaleFactor: asset.deviceScaleFactor,
     });
 
-    const page = await context.newPage();
-    page.setDefaultTimeout(5000);
-    page.setDefaultNavigationTimeout(10000);
-
-    await page.setViewport({
-      width: asset?.width ?? 1280,
-      height: asset?.height ?? 720,
-      deviceScaleFactor: asset?.deviceScaleFactor,
-    });
-
-    await page.emulateMediaFeatures([
-      { name: "prefers-color-scheme", value: asset?.colorScheme ?? "light" },
+    await this.page.emulateMediaFeatures([
+      { name: "prefers-color-scheme", value: asset.colorScheme ?? "light" },
       {
         name: "prefers-reduced-motion",
-        value: asset?.reducedMotion ?? "no-preference",
+        value: asset.reducedMotion ?? "no-preference",
       },
       // not supported in puppeteer
       // { name: "forced-colors", value: asset?.forcedColors ?? "none" },
     ]);
 
-    if (asset?.storageState?.cookies) {
+    if (asset.storageState?.cookies) {
       await page.setCookie(...asset.storageState.cookies);
     }
 
-    if (asset?.storageState?.origins) {
+    if (asset.storageState?.origins) {
       await page.evaluateOnNewDocument((origins) => {
         for (const origin of origins) {
           for (const entry of origin.localStorage) {
@@ -87,35 +61,10 @@ export class PuppeteerSession {
         }
       }, asset.storageState.origins);
     }
-
-    return new PuppeteerSession(context, page, asset);
   }
 
-  private _crop: Crop;
-
-  [Symbol.asyncDispose] = () => {
-    return this.context.close();
-  };
-
-  constructor(
-    public readonly context: BrowserContext,
-    public readonly page: Page,
-    public readonly asset: AssetConfig
-  ) {
-    const size = page.viewport();
-    this._crop = {
-      rect: {
-        x: 0,
-        y: 0,
-        width: size?.width ?? 1280,
-        height: size?.height ?? 720,
-      },
-      fullPage: false,
-    };
-  }
-
-  async goto({ url }: GotoParams) {
-    await this.page.goto(url, { waitUntil: "load" });
+  async goto({ url, waitUntil = "domcontentloaded" }: GotoParams) {
+    await this.page.goto(url, { waitUntil });
   }
 
   async click({
@@ -125,26 +74,7 @@ export class PuppeteerSession {
     button,
     position,
   }: ClickAction) {
-    let target: Page | Frame = this.page;
-
-    if (frameSelector) {
-      const frame = await this.page.waitForFrame(frameSelector);
-      if (!frame) {
-        throw new Error(`frame "${frameSelector}" not found`);
-      }
-      target = frame;
-    }
-
-    try {
-      await target.locator(selector).click({
-        clickCount,
-        button,
-        offset: position,
-      });
-    } catch (error) {
-      throw new Error(`selector "${selector}" not found`);
-    }
-
+    await this.page.click(selector, { clickCount, button });
     await this.page.mouse.move(0, 0);
   }
 
@@ -221,18 +151,15 @@ export class PuppeteerSession {
     width += padding * 2;
     height += padding * 2;
 
-    this._crop = {
-      rect: { x, y, width, height },
-      fullPage: params.fullPage ?? false,
-    };
+    this._clip = { x, y, width, height };
   }
 
   async fill({ selector, text }: FillParams) {
-    await this.page.locator(selector).fill(text);
+    await this.page.type(selector, text);
   }
 
   async hover({ selector }: HoverParams) {
-    await this.page.locator(selector).hover();
+    await this.page.hover(selector);
   }
 
   async scroll(params: ScrollParams) {
@@ -306,13 +233,13 @@ export class PuppeteerSession {
           div.style.zIndex = "10000";
         },
         params.border,
-        this._crop.rect
+        this._clip
       );
     }
     return this.page.screenshot({
       type: params.type,
       quality: params.type === "jpeg" ? params.quality : undefined,
-      clip: this._crop.rect,
+      clip: this._clip,
       // animations: "disabled",
       omitBackground: params.omitBackground,
     });

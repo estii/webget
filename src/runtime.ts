@@ -1,7 +1,4 @@
-// import { type Page } from "playwright";
-// import { getBrowser } from "./browser/playwright";
-import type { Page } from "puppeteer";
-import { getBrowser } from "./browser/puppeteer";
+import type { Browser, Page } from "puppeteer";
 import { SERVER_URL } from "./constants";
 import type { CompareParams, CompareResult } from "./runtime-script";
 
@@ -17,25 +14,22 @@ async function getScript() {
   throw new Error("No script found");
 }
 
-let runtime: Promise<Page> | null = null;
-function getRuntime() {
+let runtime: Page | null = null;
+
+async function getRuntime(browser: Browser) {
   if (runtime === null) {
-    runtime = getBrowser().then(async (browser) => {
-      const page = await browser.newPage();
-      const script = await getScript();
-      // await page.addInitScript({ content: script });
-      await page.addScriptTag({ content: script });
-      await page.goto(SERVER_URL);
-      page.on("console", (msg) => console.log(msg.type(), msg.text()));
-      page.on("pageerror", (msg) => console.log("runtime", msg));
-      return page;
-    });
+    runtime = await browser.newPage();
+    const script = await getScript();
+    await runtime.addScriptTag({ content: script });
+    await runtime.goto(SERVER_URL);
+    runtime.on("console", (msg) => console.log(msg.type(), msg.text()));
+    runtime.on("pageerror", (msg) => console.log("runtime", msg));
   }
   return runtime;
 }
 
-export async function compare(params: CompareParams) {
-  const page = await getRuntime();
+export async function compare(browser: Browser, params: CompareParams) {
+  const page = await getRuntime(browser);
   return page.evaluate((params) => window.compare(params), params);
 }
 

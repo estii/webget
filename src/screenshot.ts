@@ -1,32 +1,26 @@
-import { customAlphabet } from "nanoid";
 import { join } from "node:path";
+import { Browser, launch } from "puppeteer";
 import { PuppeteerSession } from "./browser/puppeteer";
 import { getHome } from "./cli";
 import { SERVER_URL } from "./constants";
-import { type Asset, type AssetConfig } from "./schema";
+import { type Asset } from "./schema";
+import type { ScreenshotOutcome } from "./types";
+import { getErrorMessage, getId } from "./utils";
 
-export type ScreenshotOutcome = ScreenshotResult | ScreenshotError;
+let headedBrowser: Promise<Browser> | null = null;
+let headlessBrowser: Promise<Browser> | null = null;
 
-export type ScreenshotError = {
-  status: "error";
-  error: string;
-};
-
-export type ScreenshotResult = {
-  status: "created" | "updated" | "matched";
-  path: string;
-};
-
-const alphabet =
-  "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-
-export const getId = customAlphabet(alphabet, 8);
-
-function getErrorMessage(error: unknown) {
-  if (error instanceof Error) {
-    return error.message;
+export async function getBrowser(headed = false) {
+  if (headed) {
+    if (!headedBrowser) {
+      headedBrowser = launch({ headless: false });
+    }
+    return headedBrowser;
   }
-  return "Unknown error";
+  if (!headlessBrowser) {
+    headlessBrowser = launch({ headless: true });
+  }
+  return headlessBrowser;
 }
 
 export async function update(asset: Asset): Promise<ScreenshotOutcome> {
@@ -37,9 +31,9 @@ export async function update(asset: Asset): Promise<ScreenshotOutcome> {
   }
 }
 
-export async function doUpdate(asset: AssetConfig): Promise<ScreenshotOutcome> {
+export async function doUpdate(asset: Asset): Promise<ScreenshotOutcome> {
   const url = new URL(
-    asset.url.replace("template://", SERVER_URL + "/public/templates/")
+    asset.url.replace("template://", SERVER_URL + "/templates/")
   );
 
   if (asset.inputs) {
@@ -62,21 +56,34 @@ export async function doUpdate(asset: AssetConfig): Promise<ScreenshotOutcome> {
     }
   }
 
-  await using session = await PuppeteerSession.getSession(asset);
+  const browser = await getBrowser(asset.headed);
+  const page = await browser.newPage();
 
-  console.log(url.href);
-  await session.goto({ url: url.href });
-  for (const action of asset.actions ?? []) {
-    await session.doAction(action);
+  try {
+    page.setDefaultTimeout(5000);
+    page.setDefaultNavigationTimeout(5000);
+
+    const session = new PuppeteerSession(page, asset);
+
+    console.log(url.href);
+    await session.goto({ url: url.href });
+    for (const action of asset.actions ?? []) {
+      await session.doAction(action);
+    }
+
+    const image = await session.screenshot(asset);
+    await page.close();
+
+    const id = getId();
+    const file = `assets/${id}.${asset.type === "jpeg" ? "jpg" : "png"}`;
+    await Bun.write(join(getHome(), file), image);
+
+    return {
+      status: "created",
+      path: `${SERVER_URL}/${file}`,
+    };
+  } catch (error) {
+    await page.close();
+    return { status: "error", error: getErrorMessage(error) };
   }
-
-  const image = await session.screenshot(asset);
-  const id = getId();
-  const file = `assets/${id}.${asset.type === "jpeg" ? "jpg" : "png"}`;
-  await Bun.write(join(getHome(), file), image);
-
-  return {
-    status: "created",
-    path: `${SERVER_URL}/${file}`,
-  };
 }

@@ -13,7 +13,7 @@ The JSON configuration file adheres to a schema, and looks like this:
 
 ```json
 {
-  "$schema": "https://usewebget.com/schema/v1.json",
+  "$schema": "https://webget.estii.workers.dev/schema/v1.json",
   "url": "https://usewebget.com",
   "actions": [
     {

@@ -2,7 +2,6 @@ import type { BrowserContext, Frame, Locator, Page } from "playwright";
 import type {
   Action,
   Asset,
-  AssetConfig,
   ClickAction,
   CropParams,
   FillParams,
@@ -45,7 +44,7 @@ type Crop = {
 };
 
 export class PlaywrightSession {
-  static async getSession(asset: AssetConfig) {
+  static async getSession(asset: Asset) {
     const browser = await getBrowser(asset.headed);
     const context = await browser.newContext({
       viewport: {
@@ -79,7 +78,7 @@ export class PlaywrightSession {
   constructor(
     public readonly context: BrowserContext,
     public readonly page: Page,
-    public readonly asset: AssetConfig
+    public readonly asset: Asset
   ) {
     const size = page.viewportSize();
     this._crop = {

@@ -1,12 +1,63 @@
 import { hc } from "hono/client";
 import { Listr } from "listr2";
 import { existsSync } from "node:fs";
+import { dirname, join } from "node:path";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 import { SERVER_URL } from "./constants";
-import { getAsset } from "./schema";
-import type { ScreenshotOutcome } from "./screenshot";
+import {
+  assetSchema,
+  formatIssue,
+  type Asset,
+  type WebgetConfig,
+} from "./schema";
 import { runServer, type API } from "./server";
+import type { ScreenshotOutcome } from "./types";
+import { getImageType } from "./utils";
+
+let version = 0;
+
+async function findFile(path: string, name: string) {
+  const dir = dirname(path);
+  if (dir === "/") {
+    return null;
+  }
+
+  path = join(dir, name);
+  if (await Bun.file(path).exists()) {
+    return path;
+  }
+
+  return findFile(dir, name);
+}
+
+async function getConfig(path: string): Promise<WebgetConfig> {
+  const file = await findFile(path, "webget.config.ts");
+  if (file === null) return { setup: async (asset: Asset) => asset };
+  const uncached = `${file}?cache=${version++}`;
+  return import(uncached).then((module) => module.default as WebgetConfig);
+}
+
+async function readAsset(path: string) {
+  const result = assetSchema.safeParse(await Bun.file(path).json());
+  if (result.success) {
+    return result.data;
+  }
+  throw new Error(formatIssue(result.error.issues[0]));
+}
+
+export async function getAsset(
+  output: string,
+  headed = false,
+  diff = false
+): Promise<Asset> {
+  const type = getImageType(output);
+  const input = `${output}.json`;
+  const settings = await readAsset(input);
+  const asset: Asset = { ...settings, type, headed, diff };
+  const config = await getConfig(output);
+  return config.setup(asset);
+}
 
 const api = hc<API>(SERVER_URL);
 
@@ -173,9 +224,9 @@ async function stopServer(log = false) {
   }
 }
 
-async function getScreenshot(path: string, headed = false, diff = false) {
-  const asset = await getAsset(path, headed, diff);
-  const res = await api.update.$post({ json: asset });
+async function getScreenshot(output: string, headed = false, diff = false) {
+  const asset = await getAsset(output, headed, diff);
+  const res = await api.screenshot.$post({ json: asset });
 
   if (!res.ok) {
     return { status: "error" as const, error: "Newtwork error" };
@@ -185,7 +236,7 @@ async function getScreenshot(path: string, headed = false, diff = false) {
 
   if (result.status === "created" || result.status === "updated") {
     const image = await fetch(result.path);
-    await Bun.write(asset.output, image);
+    await Bun.write(output, image);
   }
 
   return result;

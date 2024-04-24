@@ -1,12 +1,18 @@
 {
-  "$schema": "https://usewebget.com/schema/v1.json",
-  "url": "template://safari.html",
-  "deviceScaleFactor": 2,
+  "$schema": "https://webget.estii.workers.dev/schema/v1.json",
+  "url": "template://device.html?device=iPhone15Pro",
+  "deviceScaleFactor": 3,
   "omitBackground": true,
   "inputs": {
     "src": {
-      "url": "https://estii.com",
-      "deviceScaleFactor": 2
+      "url": "template://safari.html",
+      "deviceScaleFactor": 3,
+      "inputs": {
+        "src": {
+          "url": "https://estii.com",
+          "deviceScaleFactor": 3
+        }
+      }
     }
   },
   "actions": [

@@ -6,9 +6,9 @@ import { assetSchema } from "./schema";
 import { update } from "./screenshot";
 
 export const api = new Hono()
-  .use("/public/*", serveStatic({ root: "./" }))
+  .use("/static/*", serveStatic({ root: "./static" }))
   .use("/assets/*", serveStatic({ root: "./" }))
-  .post("/update", zValidator("json", assetSchema), async (c) => {
+  .post("/screenshot", zValidator("json", assetSchema), async (c) => {
     const asset = c.req.valid("json");
     const result = await update(asset);
     return c.json(result);

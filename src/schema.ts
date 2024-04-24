@@ -1,10 +1,12 @@
-import { dirname, join } from "node:path";
 import { z } from "zod";
 
 export const gotoActionSchema = z
   .object({
     type: z.literal("goto"),
     url: z.string(),
+    waitUntil: z
+      .enum(["load", "domcontentloaded", "networkidle0", "networkidle2"])
+      .optional(),
   })
   .strict();
 
@@ -119,65 +121,44 @@ export const storageStateSchema = z.object({
   origins: z.array(originSchema).optional(),
 });
 
-export const assetConfigBaseSchema = z
+export const assetBaseSchema = z
   .object({
-    $schema: z.literal("https://usewebget.com/schema/v1.json").optional(),
+    $schema: z
+      .literal("https://webget.estii.workers.dev/schema/v1.json")
+      .optional(),
     url: z.string(),
-    deviceScaleFactor: z.number().min(1).max(3).optional(),
+    deviceScaleFactor: z.number().min(1).max(3).default(1),
     baseUrl: z.string().optional(),
     border: z.string().optional(),
-    width: z.number().min(1).optional(),
-    height: z.number().min(1).optional(),
-    actions: z.array(actionSchema).optional(),
-    quality: z.number().min(0).max(100).optional(),
+    width: z.number().min(1).default(1280),
+    height: z.number().min(1).default(720),
+    actions: z.array(actionSchema).default([]),
+    quality: z.number().min(0).max(100).default(100),
     reducedMotion: z.enum(["no-preference", "reduce"]).optional(),
     colorScheme: z.enum(["no-preference", "light", "dark"]).optional(),
     forcedColors: z.enum(["none", "active"]).optional(),
     storageState: storageStateSchema.optional(),
     omitBackground: z.boolean().optional(),
-    type: z.enum(["png", "jpeg"]).optional(),
-    headed: z.boolean().optional(),
-    diff: z.boolean().optional(),
+    type: z.enum(["png", "jpeg"]).default("png"),
+    headed: z.boolean().default(false),
+    diff: z.boolean().default(false),
   })
   .strict();
 
-export type AssetConfig = z.infer<typeof assetConfigBaseSchema> & {
-  inputs?: Record<string, AssetConfig>;
+export type Asset = z.output<typeof assetBaseSchema> & {
+  inputs: Record<string, Asset>;
 };
 
-export const assetConfigSchema: z.ZodType<AssetConfig> =
-  assetConfigBaseSchema.extend({
-    inputs: z.record(z.lazy(() => assetConfigSchema)).optional(),
+type AssetInput = z.input<typeof assetBaseSchema> & {
+  inputs: Record<string, AssetInput>;
+};
+
+export const assetSchema: z.ZodType<Asset, any, AssetInput> =
+  assetBaseSchema.extend({
+    inputs: z.lazy(() => z.record(assetSchema)),
   });
 
-export const assetBaseSchema = assetConfigBaseSchema.extend({
-  output: z.string(),
-  input: z.string(),
-});
-
-export type Asset = z.infer<typeof assetBaseSchema> & {
-  inputs?: Record<string, AssetConfig>;
-};
-
-export const assetSchema: z.ZodType<Asset> = assetBaseSchema.extend({
-  inputs: z.record(z.lazy(() => assetConfigSchema)).optional(),
-});
-
-async function findFile(path: string, name: string) {
-  const dir = dirname(path);
-  if (dir === "/") {
-    return null;
-  }
-
-  path = join(dir, name);
-  if (await Bun.file(path).exists()) {
-    return path;
-  }
-
-  return findFile(dir, name);
-}
-
-function formatIssue(issue?: z.ZodIssue) {
+export function formatIssue(issue?: z.ZodIssue) {
   console.log(issue);
   switch (issue?.code) {
     case "invalid_type":
@@ -192,46 +173,6 @@ function formatIssue(issue?: z.ZodIssue) {
     default:
       return "asset not valid";
   }
-}
-
-let version = 0;
-
-async function getConfig(path: string): Promise<WebgetConfig> {
-  const file = await findFile(path, "webget.config.ts");
-  if (file === null) return { setup: async (asset: Asset) => asset };
-  const uncached = `${file}?cache=${version++}`;
-  return import(uncached).then((module) => module.default as WebgetConfig);
-}
-
-async function readAsset(path: string) {
-  const result = assetConfigSchema.safeParse(await Bun.file(path).json());
-  if (result.success) {
-    return result.data;
-  }
-  throw new Error(formatIssue(result.error.issues[0]));
-}
-
-function getType(output: string) {
-  if (output.endsWith(".png")) {
-    return "png";
-  }
-  if (output.endsWith(".jpg")) {
-    return "jpeg";
-  }
-  throw new Error(`Invalid file type ${output}`);
-}
-
-export async function getAsset(
-  output: string,
-  headed = false,
-  diff = false
-): Promise<Asset> {
-  const type = getType(output);
-  const input = `${output}.json`;
-  const settings = await readAsset(input);
-  const asset: Asset = { ...settings, output, input, type, headed, diff };
-  const config = await getConfig(output);
-  return config.setup(asset);
 }
 
 export type WebgetConfig = {
