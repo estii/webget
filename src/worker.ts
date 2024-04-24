@@ -1,4 +1,5 @@
 import { launch, type Browser } from "@cloudflare/puppeteer";
+import type { DurableObjectLocationHint } from "@cloudflare/workers-types";
 import { zValidator } from "@hono/zod-validator";
 import { DurableObject } from "cloudflare:workers";
 import { Hono } from "hono";
@@ -24,13 +25,6 @@ export class BrowserSession extends DurableObject<Bindings> {
   browser: Browser | undefined;
 
   async render(asset: Asset) {
-    const colo = (
-      (
-        await (await fetch("https://www.cloudflare.com/cdn-cgi/trace")).text()
-      ).match(/^colo=(.+)/m) as string[]
-    )[1];
-    console.log({ colo });
-
     if (!this.browser || !this.browser.isConnected()) {
       console.log("launch new browser session");
       // @ts-ignore - type error from @cloudflare/puppeteer
@@ -150,25 +144,15 @@ const locationHintSchema = z.enum([
 
 const app = new Hono<{ Bindings: Bindings }>()
   .get("/*", serveStatic({ manifest }))
-  .post(
-    "/screenshots",
-    zValidator("json", assetSchema),
-    zValidator(
-      "query",
-      z.object({
-        locationHint: locationHintSchema.default("apac"),
-      })
-    ),
-    async (c) => {
-      const asset = c.req.valid("json");
-      const { locationHint } = c.req.valid("query");
-      const num = 1;
-      const id = c.env.browserSession.idFromName(locationHint + num.toString());
-      const stub = c.env.browserSession.get(id, { locationHint });
-      const result = await stub.render(asset);
-      return c.json(result);
-    }
-  )
+  .post("/screenshots", zValidator("json", assetSchema), async (c) => {
+    const asset = c.req.valid("json");
+    const num = 1;
+    const locationHint: DurableObjectLocationHint = "apac";
+    const id = c.env.browserSession.idFromName(locationHint + num.toString());
+    const stub = c.env.browserSession.get(id, { locationHint });
+    const result = await stub.render(asset);
+    return c.json(result);
+  })
   .get("/screenshots/*", async (c) => {
     const url = new URL(c.req.url);
     const key = url.pathname.slice("/screenshots/".length);
