@@ -75,7 +75,7 @@ export async function doUpdate(asset: Asset): Promise<ScreenshotOutcome> {
     await page.close();
 
     const id = getId();
-    const file = `assets/${id}.${asset.type === "jpeg" ? "jpg" : "png"}`;
+    const file = `screenshots/${id}.${asset.type === "jpeg" ? "jpg" : "png"}`;
     await Bun.write(join(getHome(), file), image);
 
     return {

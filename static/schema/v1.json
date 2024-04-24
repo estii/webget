@@ -11,7 +11,8 @@
     "deviceScaleFactor": {
       "type": "number",
       "minimum": 1,
-      "maximum": 3
+      "maximum": 3,
+      "default": 1
     },
     "baseUrl": {
       "type": "string"
@@ -21,11 +22,13 @@
     },
     "width": {
       "type": "number",
-      "minimum": 1
+      "minimum": 1,
+      "default": 1280
     },
     "height": {
       "type": "number",
-      "minimum": 1
+      "minimum": 1,
+      "default": 720
     },
     "actions": {
       "type": "array",
@@ -51,7 +54,10 @@
                 ]
               }
             },
-            "required": ["type", "url"],
+            "required": [
+              "type",
+              "url"
+            ],
             "additionalProperties": false
           },
           {
@@ -74,7 +80,11 @@
               },
               "button": {
                 "type": "string",
-                "enum": ["left", "right", "middle"]
+                "enum": [
+                  "left",
+                  "right",
+                  "middle"
+                ]
               },
               "position": {
                 "type": "object",
@@ -86,11 +96,17 @@
                     "type": "number"
                   }
                 },
-                "required": ["x", "y"],
+                "required": [
+                  "x",
+                  "y"
+                ],
                 "additionalProperties": false
               }
             },
-            "required": ["type", "selector"],
+            "required": [
+              "type",
+              "selector"
+            ],
             "additionalProperties": false
           },
           {
@@ -107,7 +123,10 @@
                 "type": "string"
               }
             },
-            "required": ["type", "selector"],
+            "required": [
+              "type",
+              "selector"
+            ],
             "additionalProperties": false
           },
           {
@@ -127,7 +146,11 @@
                 "type": "string"
               }
             },
-            "required": ["type", "selector", "text"],
+            "required": [
+              "type",
+              "selector",
+              "text"
+            ],
             "additionalProperties": false
           },
           {
@@ -141,7 +164,10 @@
                 "type": "number"
               }
             },
-            "required": ["type", "milliseconds"],
+            "required": [
+              "type",
+              "milliseconds"
+            ],
             "additionalProperties": false
           },
           {
@@ -173,7 +199,9 @@
                 "type": "boolean"
               }
             },
-            "required": ["type"],
+            "required": [
+              "type"
+            ],
             "additionalProperties": false
           },
           {
@@ -190,28 +218,43 @@
                 "type": "number"
               }
             },
-            "required": ["type", "selector"],
+            "required": [
+              "type",
+              "selector"
+            ],
             "additionalProperties": false
           }
         ]
-      }
+      },
+      "default": []
     },
     "quality": {
       "type": "number",
       "minimum": 0,
-      "maximum": 100
+      "maximum": 100,
+      "default": 100
     },
     "reducedMotion": {
       "type": "string",
-      "enum": ["no-preference", "reduce"]
+      "enum": [
+        "no-preference",
+        "reduce"
+      ]
     },
     "colorScheme": {
       "type": "string",
-      "enum": ["no-preference", "light", "dark"]
+      "enum": [
+        "no-preference",
+        "light",
+        "dark"
+      ]
     },
     "forcedColors": {
       "type": "string",
-      "enum": ["none", "active"]
+      "enum": [
+        "none",
+        "active"
+      ]
     },
     "storageState": {
       "type": "object",
@@ -244,7 +287,11 @@
               },
               "sameSite": {
                 "type": "string",
-                "enum": ["Strict", "Lax", "None"]
+                "enum": [
+                  "Strict",
+                  "Lax",
+                  "None"
+                ]
               }
             },
             "required": [
@@ -280,12 +327,18 @@
                       "type": "string"
                     }
                   },
-                  "required": ["name", "value"],
+                  "required": [
+                    "name",
+                    "value"
+                  ],
                   "additionalProperties": false
                 }
               }
             },
-            "required": ["origin", "localStorage"],
+            "required": [
+              "origin",
+              "localStorage"
+            ],
             "additionalProperties": false
           }
         }
@@ -297,13 +350,19 @@
     },
     "type": {
       "type": "string",
-      "enum": ["png", "jpeg"]
+      "enum": [
+        "png",
+        "jpeg"
+      ],
+      "default": "png"
     },
     "headed": {
-      "type": "boolean"
+      "type": "boolean",
+      "default": false
     },
     "diff": {
-      "type": "boolean"
+      "type": "boolean",
+      "default": false
     },
     "inputs": {
       "type": "object",
@@ -312,7 +371,10 @@
       }
     }
   },
-  "required": ["url"],
+  "required": [
+    "url",
+    "inputs"
+  ],
   "additionalProperties": false,
   "$schema": "http://json-schema.org/draft-07/schema#"
 }

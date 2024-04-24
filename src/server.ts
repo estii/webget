@@ -7,7 +7,7 @@ import { update } from "./screenshot";
 
 export const api = new Hono()
   .use("/static/*", serveStatic({ root: "./static" }))
-  .use("/assets/*", serveStatic({ root: "./" }))
+  .use("/screenshots/*", serveStatic({ root: "./" }))
   .post("/screenshot", zValidator("json", assetSchema), async (c) => {
     const asset = c.req.valid("json");
     const result = await update(asset);
