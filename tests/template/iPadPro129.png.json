@@ -1,6 +1,6 @@
 {
   "$schema": "https://webget.estii.workers.dev/schema/v1.json",
-  "url": "template://device.html?device=iPadPro129",
+  "url": "https://webget.estii.workers.dev/templates/device.html?device=iPadPro129",
   "deviceScaleFactor": 3,
   "omitBackground": true,
   "inputs": {

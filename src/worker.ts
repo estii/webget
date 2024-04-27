@@ -3,7 +3,7 @@ import type { DurableObjectLocationHint } from "@cloudflare/workers-types";
 import { zValidator } from "@hono/zod-validator";
 import { DurableObject } from "cloudflare:workers";
 import { Hono } from "hono";
-import { PuppeteerSession } from "./browser/puppeteer";
+import { PuppeteerSession, getAssetUrl } from "./browser/puppeteer";
 import { assetSchema, type Asset } from "./schema";
 import type { ScreenshotOutcome } from "./types";
 import { getErrorMessage, getId } from "./utils";
@@ -77,9 +77,7 @@ async function render(
   browser: Browser,
   asset: Asset
 ): Promise<ScreenshotOutcome> {
-  const url = new URL(
-    asset.url.replace("template://", `${SERVER_URL}/templates/`)
-  );
+  const url = new URL(getAssetUrl(asset, asset.url));
 
   if (asset.inputs) {
     const entries = await Promise.all(
@@ -101,14 +99,11 @@ async function render(
   const page = await browser.newPage();
 
   try {
-    page.setDefaultTimeout(10000);
-    page.setDefaultNavigationTimeout(10000);
-
     const session = new PuppeteerSession(page as any, asset);
     await session.init();
 
-    await session.goto({ url: url.href, waitUntil: "networkidle2" });
-    console.log(url.href);
+    await session.goto({ url: url.href });
+
     for (const action of asset.actions ?? []) {
       await session.doAction(action);
     }

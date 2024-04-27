@@ -62,7 +62,7 @@
     "types": "bun src/scripts/types.ts",
     "dev": "bun --watch src/dev.ts",
     "webget": "bun src/cli.ts",
-    "cli": "bun build --compile --external electron --sourcemap ./src/cli.ts --outfile webget && mkdir -p bin && mv src/webget bin/webget",
+    "cli": "bun build --compile --external electron --sourcemap ./src/cli.ts --outfile webget && mkdir -p bin && mv webget bin/webget",
     "pack": "npm pack --pack-destination ../tester"
   }
 }

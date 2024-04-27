@@ -1,6 +1,6 @@
 {
   "$schema": "https://webget.estii.workers.dev/schema/v1.json",
-  "url": "template://device.html?device=MacBookPro16",
+  "url": "https://webget.estii.workers.dev/templates/device.html?device=MacBookPro16",
   "deviceScaleFactor": 2,
   "omitBackground": true,
   "inputs": {

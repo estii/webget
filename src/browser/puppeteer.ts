@@ -11,6 +11,13 @@ import type {
   WaitAction,
 } from "../schema";
 
+export function getAssetUrl(asset: Asset, url: string): string {
+  if (asset.baseUrl && url.startsWith("/")) {
+    return new URL(url, asset.baseUrl).href;
+  }
+  return url;
+}
+
 type Rect = { x: number; y: number; width: number; height: number };
 
 export class PuppeteerSession {
@@ -31,6 +38,9 @@ export class PuppeteerSession {
   async init() {
     const page = this.page;
     const asset = this.asset;
+
+    page.setDefaultTimeout(5000);
+    page.setDefaultNavigationTimeout(5000);
 
     await this.page.setViewport({
       width: asset.width ?? 1280,
@@ -63,8 +73,8 @@ export class PuppeteerSession {
     }
   }
 
-  async goto({ url, waitUntil = "domcontentloaded" }: GotoParams) {
-    await this.page.goto(url, { waitUntil });
+  async goto({ url, waitUntil = "networkidle2" }: GotoParams) {
+    await this.page.goto(getAssetUrl(this.asset, url), { waitUntil });
   }
 
   async click({

@@ -1,6 +1,6 @@
 {
   "$schema": "https://webget.estii.workers.dev/schema/v1.json",
-  "url": "template://gradient.html",
+  "url": "https://webget.estii.workers.dev/templates/gradient.html",
   "deviceScaleFactor": 2,
   "inputs": {
     "src": {

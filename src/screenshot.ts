@@ -1,24 +1,49 @@
 import { join } from "node:path";
 import { Browser, launch } from "puppeteer";
-import { PuppeteerSession } from "./browser/puppeteer";
+import { PuppeteerSession, getAssetUrl } from "./browser/puppeteer";
 import { getHome } from "./cli";
 import { SERVER_URL } from "./constants";
 import { type Asset } from "./schema";
 import type { ScreenshotOutcome } from "./types";
 import { getErrorMessage, getId } from "./utils";
 
-let headedBrowser: Promise<Browser> | null = null;
-let headlessBrowser: Promise<Browser> | null = null;
+let headedBrowser: Browser | null = null;
+let headlessBrowser: Browser | null = null;
 
 export async function getBrowser(headed = false) {
   if (headed) {
     if (!headedBrowser) {
-      headedBrowser = launch({ headless: false });
+      headedBrowser = await launch({
+        headless: false,
+        defaultViewport: null,
+        waitForInitialPage: false,
+        args: ["--no-startup-window"],
+      });
+
+      process.on("SIGINT", () => {
+        if (headedBrowser) {
+          console.log("SIGINT");
+          headedBrowser.close().then(() => {
+            console.log("closed headed browser");
+          });
+        }
+      });
     }
     return headedBrowser;
   }
   if (!headlessBrowser) {
-    headlessBrowser = launch({ headless: true });
+    headlessBrowser = await launch({
+      headless: true,
+      defaultViewport: null,
+      waitForInitialPage: false,
+      args: ["--no-startup-window"],
+    });
+    process.on("SIGINT", () => {
+      console.log("SIGINT");
+      if (headlessBrowser) {
+        headlessBrowser.close();
+      }
+    });
   }
   return headlessBrowser;
 }
@@ -32,9 +57,7 @@ export async function update(asset: Asset): Promise<ScreenshotOutcome> {
 }
 
 export async function doUpdate(asset: Asset): Promise<ScreenshotOutcome> {
-  const url = new URL(
-    asset.url.replace("template://", SERVER_URL + "/templates/")
-  );
+  const url = new URL(getAssetUrl(asset, asset.url));
 
   if (asset.inputs) {
     const entries = await Promise.all(
@@ -60,10 +83,8 @@ export async function doUpdate(asset: Asset): Promise<ScreenshotOutcome> {
   const page = await browser.newPage();
 
   try {
-    page.setDefaultTimeout(5000);
-    page.setDefaultNavigationTimeout(5000);
-
     const session = new PuppeteerSession(page, asset);
+    await session.init();
 
     console.log(url.href);
     await session.goto({ url: url.href });

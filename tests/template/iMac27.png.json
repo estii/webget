@@ -1,6 +1,6 @@
 {
   "$schema": "https://webget.estii.workers.dev/schema/v1.json",
-  "url": "template://device.html?device=iMac27",
+  "url": "https://webget.estii.workers.dev/templates/device.html?device=iMac27",
   "deviceScaleFactor": 2,
   "omitBackground": true,
   "inputs": {
